@@ -1,0 +1,555 @@
+import csv
+import re
+from datetime import datetime, date
+from collections import defaultdict
+import openpyxl
+
+ISSUE_PATH = r"D:\W3A_IABGVOC\.claude\assets\Function Requirement csv\IABGVOC Issue.csv"
+REQ_PATH   = r"D:\W3A_IABGVOC\.claude\assets\Function Requirement csv\IABGVOC Requirement.csv"
+XLSX_PATH  = r"D:\W3A_IABGVOC\.claude\assets\Function Tag\OneSW-Form-0023-TC_DIADesigner Function Check List (1).xlsx"
+TODAY = date(2026, 5, 19)
+
+def load_valid_tags():
+    wb = openpyxl.load_workbook(XLSX_PATH, data_only=True)
+    ws = wb['DIADesigner Function List']
+    valid = set()
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        val = row[3] if len(row) > 3 else None
+        if val and isinstance(val, str) and val.strip():
+            t = val.strip().lower()
+            # skip header-like or n/a entries
+            if t not in ('n/a', 'download/upload mgr') and not t.startswith('\x5c'):
+                valid.add(t)
+    return valid
+
+VALID_TAGS = load_valid_tags()
+
+def parse_date(s):
+    if not s:
+        return None
+    s = s.strip()
+    # "2026/5/18 下午 3:02" or "2026/5/18 上午 9:00"
+    m = re.match(r'(\d{4})/(\d{1,2})/(\d{1,2})', s)
+    if m:
+        try:
+            return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError:
+            return None
+    return None
+
+def load_csv(path):
+    rows = []
+    with open(path, encoding='utf-8-sig') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            rows.append(row)
+    return rows
+
+def tags(row):
+    return [t.strip().lower() for t in row.get('Tag', '').split(',') if t.strip()]
+
+def is_open(row):
+    return row.get('State', '').strip().lower() != 'closed'
+
+def fmea(row):
+    try:
+        return int(row.get('FMEA Total', '0') or 0)
+    except ValueError:
+        return 0
+
+def open_days(row):
+    d = parse_date(row.get('Creation Date', ''))
+    if d:
+        return (TODAY - d).days
+    return 0
+
+# ── Load data ──────────────────────────────────────────────────────────────
+issues = load_csv(ISSUE_PATH)
+reqs   = load_csv(REQ_PATH)
+
+print(f"Loaded: {len(issues)} issues, {len(reqs)} requirements")
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 1. ISSUE 品質現況（TE Leader）
+# ═══════════════════════════════════════════════════════════════════════════
+
+sev_counts = defaultdict(lambda: {'total': 0, 'open': 0})
+for r in issues:
+    sv = r.get('Severity', 'Unknown').strip()
+    sev_counts[sv]['total'] += 1
+    if is_open(r):
+        sev_counts[sv]['open'] += 1
+
+state_counts = defaultdict(int)
+for r in issues:
+    state_counts[r.get('State', '').strip()] += 1
+
+# Critical/Blocker open list
+cb_open = [r for r in issues if r.get('Severity','').strip() in ('Blocker','Critical') and is_open(r)]
+cb_open.sort(key=lambda r: fmea(r), reverse=True)
+
+# Aging: open > 180 days
+aged = [r for r in issues if is_open(r) and open_days(r) > 180]
+aged.sort(key=lambda r: open_days(r), reverse=True)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 1b. ISSUE 開發進度（RD Leader）
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Planned For version breakdown
+planned_counts = defaultdict(lambda: {'total': 0, 'closed': 0})
+for r in issues:
+    pf = r.get('Planned For', 'Unassigned').strip() or 'Unassigned'
+    planned_counts[pf]['total'] += 1
+    if not is_open(r):
+        planned_counts[pf]['closed'] += 1
+
+# Version category mapping
+VERSION_CATEGORIES = [
+    'DIADesigner SP1', 'DIADesigner SP4', 'DIADesigner 1.9.0',
+    'DIADesigner 1.10.0', 'DIADesigner 1.11.0', 'DIADesigner 1.12.0',
+    'DIADesigner 1.13.0', 'DIADesigner 1.14.0', 'DIADesigner 1.15.0',
+    'Need Triage', 'Need More Information', 'Backlog', 'Not Support',
+]
+
+def categorize_version(pf):
+    if pf in ('', 'Unassigned'):
+        return 'Need Triage'
+    if pf == 'Requirement Analysis Phase':
+        return 'Need More Information'
+    if pf == 'Rev_ProductBacklog_DIADesigner':
+        return 'Backlog'
+    if pf == 'Rev_WheneverBacklog_DIADesigner':
+        return 'Not Support'
+    if 'SP1' in pf:
+        return 'DIADesigner SP1'
+    if 'SP4' in pf:
+        return 'DIADesigner SP4'
+    for v in ['1.9.0', '1.10.0', '1.11.0', '1.12.0', '1.13.0', '1.14.0', '1.15.0']:
+        if v in pf:
+            return f'DIADesigner {v}'
+    return pf
+
+cat_counts = defaultdict(lambda: {'total': 0, 'closed': 0})
+cat_versions = defaultdict(list)
+for pf, d in planned_counts.items():
+    cat = categorize_version(pf)
+    cat_counts[cat]['total'] += d['total']
+    cat_counts[cat]['closed'] += d['closed']
+    cat_versions[cat].append((pf, d))
+for cat in cat_versions:
+    cat_versions[cat].sort(key=lambda x: -x[1]['total'])
+
+# All open issues sorted by FMEA for 2.3
+all_open_issues = sorted([r for r in issues if is_open(r)], key=lambda r: fmea(r), reverse=True)
+
+# Unassigned high-severity open issues
+unassigned_high = [r for r in issues
+                   if is_open(r)
+                   and r.get('Owner','').strip() in ('', 'Unassigned')
+                   and r.get('Severity','').strip() in ('Blocker','Critical','Major')]
+unassigned_high.sort(key=lambda r: fmea(r), reverse=True)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 2. REQUIREMENT 進度（PM）
+# ═══════════════════════════════════════════════════════════════════════════
+
+req_type_counts = defaultdict(lambda: {'total': 0, 'closed': 0})
+for r in reqs:
+    rt = r.get('Requirement Type', 'Unknown').strip()
+    req_type_counts[rt]['total'] += 1
+    if not is_open(r):
+        req_type_counts[rt]['closed'] += 1
+
+req_state_counts = defaultdict(int)
+for r in reqs:
+    req_state_counts[r.get('State', '').strip()] += 1
+
+# FMEA top 20 open requirements
+req_open = [r for r in reqs if is_open(r)]
+req_open.sort(key=lambda r: fmea(r), reverse=True)
+req_top20 = req_open[:20]
+
+# FMEA tier breakdown for open reqs
+fmea_high   = [r for r in req_open if fmea(r) >= 500]
+fmea_mid    = [r for r in req_open if 200 <= fmea(r) < 500]
+fmea_low    = [r for r in req_open if fmea(r) < 200]
+
+# Unassigned ratio
+req_unassigned = sum(1 for r in reqs if r.get('Owner','').strip() in ('', 'Unassigned') and is_open(r))
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 3. 區域 / 客戶分析
+# ═══════════════════════════════════════════════════════════════════════════
+
+region_issue = defaultdict(lambda: {'total': 0, 'open': 0, 'cb_open': 0})
+for r in issues:
+    rg = r.get('Region', 'Unknown').strip() or 'Unknown'
+    region_issue[rg]['total'] += 1
+    if is_open(r):
+        region_issue[rg]['open'] += 1
+        if r.get('Severity','').strip() in ('Blocker','Critical'):
+            region_issue[rg]['cb_open'] += 1
+
+region_req = defaultdict(lambda: {'total': 0, 'open': 0})
+for r in reqs:
+    rg = r.get('Region', 'Unknown').strip() or 'Unknown'
+    region_req[rg]['total'] += 1
+    if is_open(r):
+        region_req[rg]['open'] += 1
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 4. 功能模組分析（Tag）
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Collect tag stats: only tags defined in the Function Check List xlsx (column D)
+tag_stats = defaultdict(lambda: {'issue': 0, 'req': 0, 'cb_open': 0})
+
+for r in issues:
+    for t in tags(r):
+        if t in VALID_TAGS:
+            tag_stats[t]['issue'] += 1
+            if is_open(r) and r.get('Severity','').strip() in ('Blocker','Critical'):
+                tag_stats[t]['cb_open'] += 1
+
+for r in reqs:
+    for t in tags(r):
+        if t in VALID_TAGS:
+            tag_stats[t]['req'] += 1
+
+# Sort by total volume
+tag_sorted = sorted(tag_stats.items(), key=lambda x: x[1]['issue'] + x[1]['req'], reverse=True)
+tag_top15 = tag_sorted[:15]
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 5. 特別關注：step_control / 手順 / dgc_fae
+# ═══════════════════════════════════════════════════════════════════════════
+
+SPECIAL_TAGS = {'step_control', '手順', 'dgc_fae'}
+
+special_issues = [r for r in issues if any(t in SPECIAL_TAGS for t in tags(r))]
+special_reqs   = [r for r in reqs   if any(t in SPECIAL_TAGS for t in tags(r))]
+
+def special_tag_label(row):
+    matched = [t for t in tags(row) if t in SPECIAL_TAGS]
+    return ', '.join(matched)
+
+special_issues.sort(key=lambda r: fmea(r), reverse=True)
+special_reqs.sort(key=lambda r: fmea(r), reverse=True)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 6. 歷年趨勢
+# ═══════════════════════════════════════════════════════════════════════════
+
+year_issue = defaultdict(lambda: {'created': 0, 'closed': 0})
+for r in issues:
+    d = parse_date(r.get('Creation Date', ''))
+    if d:
+        year_issue[d.year]['created'] += 1
+    d2 = parse_date(r.get('Resolution date', ''))
+    if d2:
+        year_issue[d2.year]['closed'] += 1
+
+year_req = defaultdict(lambda: {'created': 0, 'closed': 0})
+for r in reqs:
+    d = parse_date(r.get('Creation Date', ''))
+    if d:
+        year_req[d.year]['created'] += 1
+    d2 = parse_date(r.get('Resolution date', ''))
+    if d2:
+        year_req[d2.year]['closed'] += 1
+
+# ═══════════════════════════════════════════════════════════════════════════
+# OUTPUT
+# ═══════════════════════════════════════════════════════════════════════════
+
+SEV_ORDER = ['Blocker', 'Critical', 'Major', 'Minor']
+
+out = []
+
+out.append("# IABGVOC Issue & Requirement 分析報告\n")
+out.append(f"> 資料截止日：{TODAY}　Issue 總數：{len(issues)}　Requirement 總數：{len(reqs)}\n")
+
+# ─── Executive Summary ───────────────────────────────────────────────────
+total_open_issues = sum(1 for r in issues if is_open(r))
+total_open_reqs   = sum(1 for r in reqs if is_open(r))
+cb_total = len(cb_open)
+req_closed_pct = round(sum(v['closed'] for v in req_type_counts.values()) / len(reqs) * 100, 1)
+
+out.append("## 執行摘要（Executive Summary）\n")
+out.append(f"- **開放 Issue 數**：{total_open_issues} / {len(issues)}（其中 Critical/Blocker：{cb_total} 筆）")
+out.append(f"- **開放 Requirement 數**：{total_open_reqs} / {len(reqs)}（整體完成率：{req_closed_pct}%）")
+
+max_fmea_req = req_top20[0] if req_top20 else None
+if max_fmea_req:
+    out.append(f"- **最高風險 Requirement**：[{max_fmea_req['ID']}] {max_fmea_req['Summary'][:60]}… (FMEA={fmea(max_fmea_req)})")
+
+top_tag = tag_top15[0][0] if tag_top15 else '-'
+out.append(f"- **最熱點功能模組（Tag）**：`{top_tag}`（Issue+Req 合計 {tag_top15[0][1]['issue']+tag_top15[0][1]['req']} 筆）")
+out.append(f"- **老化 Issue（>180天未關閉）**：{len(aged)} 筆\n")
+
+# ─── Methodology ─────────────────────────────────────────────────────────
+out.append("## 分析方法（Methodology）\n")
+out.append("| 項目 | 說明 |")
+out.append("|------|------|")
+out.append(f"| 資料來源 | IABGVOC Issue.csv（{len(issues)} 筆）、IABGVOC Requirement.csv（{len(reqs)} 筆）|")
+out.append("| 時間範圍 | 2021 ~ 2026/05（全部資料）|")
+out.append(f"| 分析基準日 | {TODAY} |")
+out.append("| 開放定義 | State ≠ Closed |")
+out.append("| 老化定義 | 開放超過 180 天（創建日至今）|")
+out.append("| 特別關注 Tag | `step_control`、`手順`、`dgc_fae` |")
+out.append("| FMEA 分層 | 高風險：>=500 / 中風險：200-499 / 低風險：<200 |\n")
+
+# ─── 1. Issue 品質現況（TE Leader）──────────────────────────────────────
+out.append("## 一、Issue 品質現況（TE Leader）\n")
+
+out.append("### 1.1 嚴重性分布\n")
+out.append("| 嚴重性 | 總數 | 開放數 | 開放率 |")
+out.append("|--------|------|--------|--------|")
+for sv in SEV_ORDER:
+    d = sev_counts.get(sv, {'total': 0, 'open': 0})
+    pct = round(d['open']/d['total']*100, 1) if d['total'] else 0
+    out.append(f"| {sv} | {d['total']} | {d['open']} | {pct}% |")
+out.append("")
+
+out.append("### 1.2 狀態分布\n")
+out.append("| 狀態 | 數量 |")
+out.append("|------|------|")
+for st, cnt in sorted(state_counts.items(), key=lambda x: -x[1]):
+    out.append(f"| {st} | {cnt} |")
+out.append("")
+
+out.append("### 1.3 版本計畫完成率（分類規則）\n")
+out.append("| 版本分類 | 總數 | 已關閉 | 完成率 |")
+out.append("|----------|------|--------|--------|")
+for cat in VERSION_CATEGORIES:
+    if cat in cat_counts:
+        d = cat_counts[cat]
+        pct = round(d['closed']/d['total']*100, 1) if d['total'] else 0
+        out.append(f"| {cat} | {d['total']} | {d['closed']} | {pct}% |")
+out.append("")
+
+out.append(f"### 1.4 Critical / Blocker 未關閉項目（共 {len(cb_open)} 筆，依 FMEA 排序）\n")
+out.append("| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | 摘要 |")
+out.append("|----|--------|------|-------|-------|----------|------|")
+for r in cb_open:
+    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {summ} |")
+out.append("")
+
+out.append(f"### 1.5 老化 Issue（開放 >180 天，共 {len(aged)} 筆）\n")
+if aged:
+    out.append("| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | 摘要 |")
+    out.append("|----|--------|------|-------|-------|----------|------|")
+    for r in aged[:30]:
+        summ = r.get('Summary','').strip()[:55].replace('|','｜')
+        out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {summ} |")
+    if len(aged) > 30:
+        out.append(f"\n> 僅列出前 30 筆，完整清單見附錄。")
+out.append("")
+
+# ─── Issue 開發進度（RD Leader）──────────────────────────────────────
+out.append("## 二、Issue 開發進度（RD Leader）\n")
+
+out.append("### 2.1 嚴重性分布\n")
+out.append("| 嚴重性 | 總數 | 開放數 | 開放率 |")
+out.append("|--------|------|--------|--------|")
+for sv in SEV_ORDER:
+    d = sev_counts.get(sv, {'total': 0, 'open': 0})
+    pct = round(d['open']/d['total']*100, 1) if d['total'] else 0
+    out.append(f"| {sv} | {d['total']} | {d['open']} | {pct}% |")
+out.append("")
+
+out.append("### 2.2 狀態分布\n")
+out.append("| 狀態 | 數量 |")
+out.append("|------|------|")
+for st, cnt in sorted(state_counts.items(), key=lambda x: -x[1]):
+    out.append(f"| {st} | {cnt} |")
+out.append("")
+
+_top_n = min(20, len(all_open_issues))
+out.append(f"### 2.3 FMEA Total 未處理項目分析（Top {_top_n}，依 FMEA 排序）\n")
+out.append("| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | 摘要 |")
+out.append("|----|--------|------|-------|-------|----------|------|")
+for r in all_open_issues[:_top_n]:
+    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {summ} |")
+out.append("")
+
+out.append("### 2.4 版本計畫完成率（分類規則）\n")
+out.append("#### 分類彙總\n")
+out.append("| 版本分類 | 總數 | 已關閉 | 完成率 |")
+out.append("|----------|------|--------|--------|")
+for cat in VERSION_CATEGORIES:
+    if cat in cat_counts:
+        d = cat_counts[cat]
+        pct = round(d['closed']/d['total']*100, 1) if d['total'] else 0
+        out.append(f"| {cat} | {d['total']} | {d['closed']} | {pct}% |")
+out.append("")
+
+out.append(f"### 2.5 高嚴重性 Unassigned Issue（共 {len(unassigned_high)} 筆）\n")
+if unassigned_high:
+    out.append("| ID | 嚴重性 | FMEA | State | 開放天數 | 摘要 |")
+    out.append("|----|--------|------|-------|----------|------|")
+    for r in unassigned_high[:20]:
+        summ = r.get('Summary','').strip()[:55].replace('|','｜')
+        out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {open_days(r)} | {summ} |")
+out.append("")
+
+# ─── 2. Requirement 進度（PM）──────────────────────────────────────────
+out.append("## 三、Requirement 進度（PM）\n")
+
+out.append("### 3.1 需求類型分布\n")
+out.append("| 類型 | 總數 | 已關閉 | 完成率 |")
+out.append("|------|------|--------|--------|")
+for rt, d in sorted(req_type_counts.items(), key=lambda x: -x[1]['total']):
+    pct = round(d['closed']/d['total']*100, 1) if d['total'] else 0
+    out.append(f"| {rt} | {d['total']} | {d['closed']} | {pct}% |")
+out.append("")
+
+out.append("### 3.2 狀態分布\n")
+out.append("| 狀態 | 數量 |")
+out.append("|------|------|")
+for st, cnt in sorted(req_state_counts.items(), key=lambda x: -x[1]):
+    out.append(f"| {st} | {cnt} |")
+out.append("")
+
+out.append("### 3.3 FMEA 風險分層（未關閉）\n")
+out.append(f"- 高風險（FMEA >= 500）：**{len(fmea_high)}** 筆")
+out.append(f"- 中風險（200-499）：**{len(fmea_mid)}** 筆")
+out.append(f"- 低風險（< 200）：**{len(fmea_low)}** 筆")
+out.append(f"- 待辦未指派（Unassigned）：**{req_unassigned}** 筆\n")
+
+out.append(f"### 3.4 FMEA Top 20 未關閉 Requirement（PM 優先關注）\n")
+out.append("| ID | FMEA | 嚴重性 | State | Owner | 摘要 |")
+out.append("|----|------|--------|-------|-------|------|")
+for r in req_top20:
+    summ = r.get('Summary','').strip()[:60].replace('|','｜')
+    out.append(f"| {r['ID']} | {fmea(r)} | {r.get('Severity','')} | {r.get('State','')} | {r.get('Owner','')} | {summ} |")
+out.append("")
+
+# ─── 3. 區域分析 ────────────────────────────────────────────────────────
+out.append("## 四、區域 / 客戶分析\n")
+out.append("| Region | Issue 總數 | Issue 開放 | Critical/Blocker 開放 | Req 總數 | Req 開放 |")
+out.append("|--------|-----------|-----------|----------------------|---------|---------|")
+all_regions = sorted(set(list(region_issue.keys()) + list(region_req.keys())),
+                     key=lambda r: region_issue[r]['total'] + region_req[r]['total'], reverse=True)
+for rg in all_regions:
+    ri = region_issue[rg]
+    rr = region_req[rg]
+    out.append(f"| {rg} | {ri['total']} | {ri['open']} | {ri['cb_open']} | {rr['total']} | {rr['open']} |")
+out.append("")
+
+# ─── 4. 功能模組分析（Tag）──────────────────────────────────────────────
+out.append("## 五、功能模組熱點分析（Tag）\n")
+out.append("| 功能模組（Tag） | Issue | Requirement | C/B 開放 |")
+out.append("|----------------|-------|-------------|---------|")
+for t, d in tag_top15:
+    out.append(f"| `{t}` | {d['issue']} | {d['req']} | {d['cb_open']} |")
+out.append("")
+
+# ─── 5. 特別關注 ──────────────────────────────────────────────────────────
+out.append("## 六、特別關注項目（step_control / 手順 / dgc_fae）\n")
+
+si_open  = [r for r in special_issues if is_open(r)]
+si_closed= [r for r in special_issues if not is_open(r)]
+sr_open  = [r for r in special_reqs   if is_open(r)]
+sr_closed= [r for r in special_reqs   if not is_open(r)]
+
+out.append(f"**Issue**：共 {len(special_issues)} 筆（開放 {len(si_open)} / 已關閉 {len(si_closed)}）")
+out.append(f"**Requirement**：共 {len(special_reqs)} 筆（開放 {len(sr_open)} / 已關閉 {len(sr_closed)}）\n")
+
+out.append("### 6.1 特別關注 Issue（依 FMEA 排序）\n")
+out.append("| ID | Tag | 嚴重性 | FMEA | State | Owner | 摘要 |")
+out.append("|----|-----|--------|------|-------|-------|------|")
+for r in special_issues:
+    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    out.append(f"| {r['ID']} | {special_tag_label(r)} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {summ} |")
+out.append("")
+
+out.append("### 6.2 特別關注 Requirement（依 FMEA 排序）\n")
+out.append("| ID | Tag | 嚴重性 | FMEA | State | Owner | 摘要 |")
+out.append("|----|-----|--------|------|-------|-------|------|")
+for r in special_reqs:
+    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    out.append(f"| {r['ID']} | {special_tag_label(r)} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {summ} |")
+out.append("")
+
+# ─── 6. 歷年趨勢 ──────────────────────────────────────────────────────────
+out.append("## 七、歷年趨勢分析\n")
+out.append("| 年份 | Issue 新增 | Issue 關閉 | Issue 解決率 | Req 新增 | Req 關閉 | Req 解決率 |")
+out.append("|------|-----------|-----------|------------|---------|---------|---------|")
+all_years = sorted(set(list(year_issue.keys()) + list(year_req.keys())))
+for yr in all_years:
+    yi = year_issue[yr]
+    yr2 = year_req[yr]
+    i_pct = round(yi['closed']/yi['created']*100, 1) if yi['created'] else '-'
+    r_pct = round(yr2['closed']/yr2['created']*100, 1) if yr2['created'] else '-'
+    out.append(f"| {yr} | {yi['created']} | {yi['closed']} | {i_pct}% | {yr2['created']} | {yr2['closed']} | {r_pct}% |")
+out.append("")
+
+# ─── Recommendations ────────────────────────────────────────────────────
+out.append("## 建議事項（Recommendations）\n")
+
+out.append("### PM")
+out.append(f"1. 優先推動 FMEA ≥ 500 的 {len(fmea_high)} 筆高風險 Requirement 排入近期版本規劃，避免持續積壓。")
+out.append(f"2. 對 Unassigned 的 {req_unassigned} 筆開放 Requirement 進行責任指派，降低 Backlog 盲點。")
+out.append("3. 針對 Top 20 FMEA Requirement，召集 RD/TE 評估可交付版本，並更新 Planned For 欄位。\n")
+
+out.append("### RD Leader")
+out.append(f"1. 解決 {len(unassigned_high)} 筆高嚴重性 Unassigned Issue，明確指派負責人。")
+out.append("2. 檢視 Owner 分布，避免少數人員過度集中，規劃工作分擔。")
+out.append(f"3. 確認各版本（Planned For）的 Issue 完成率，對接近截止的版本提前介入。\n")
+
+out.append("### TE Leader")
+out.append(f"1. 集中測試驗證 {len(cb_open)} 筆未關閉的 Critical/Blocker Issue，確保 State 推進至 Verification→Closed。")
+out.append(f"2. 對 {len(aged)} 筆老化 Issue（>180天）逐一確認是否已完成但未更新 State，或需要重新排程。")
+out.append("3. 追蹤 `step_control` / `手順` 相關 Issue 的驗證進度，確保手順邏輯正確性。\n")
+
+out.append("### 部門主管")
+out.append(f"1. 目前 Critical/Blocker 開放數為 {cb_total}，建議設定每週清零目標並追蹤。")
+out.append(f"2. FMEA 高風險 Requirement 有 {len(fmea_high)} 筆待處理，建議 PM 召開優先級對齊會議。")
+out.append("3. 關注 DGC-China 區域需求（dgc_fae）的回應速度，確保客戶關係維繫。\n")
+
+# ─── Appendix ────────────────────────────────────────────────────────────
+out.append("## 附錄（Appendix）\n")
+
+out.append("### A. 全部 Critical/Blocker 開放 Issue\n")
+out.append("| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | Region | 摘要 |")
+out.append("|----|--------|------|-------|-------|----------|--------|------|")
+for r in cb_open:
+    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {r.get('Region','')} | {summ} |")
+out.append("")
+
+out.append(f"### B. 老化 Issue 完整清單（>180 天，共 {len(aged)} 筆）\n")
+out.append("| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | Region | 摘要 |")
+out.append("|----|--------|------|-------|-------|----------|--------|------|")
+for r in aged:
+    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {r.get('Region','')} | {summ} |")
+out.append("")
+
+out.append("### C. step_control / 手順 / dgc_fae 完整項目列表\n")
+out.append("#### C1. Issue\n")
+out.append("| ID | Tag | 嚴重性 | FMEA | State | Owner | Region | 摘要 |")
+out.append("|----|-----|--------|------|-------|-------|--------|------|")
+for r in special_issues:
+    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    out.append(f"| {r['ID']} | {special_tag_label(r)} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {r.get('Region','')} | {summ} |")
+out.append("")
+out.append("#### C2. Requirement\n")
+out.append("| ID | Tag | 嚴重性 | FMEA | State | Owner | Region | 摘要 |")
+out.append("|----|-----|--------|------|-------|-------|--------|------|")
+for r in special_reqs:
+    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    out.append(f"| {r['ID']} | {special_tag_label(r)} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {r.get('Region','')} | {summ} |")
+out.append("")
+
+result = '\n'.join(out)
+
+# Save raw analysis for report-writer
+with open(r"D:\W3A_IABGVOC\analysis_raw.md", 'w', encoding='utf-8') as f:
+    f.write(result)
+
+print("\n\n=== DONE: analysis_raw.md saved ===")
