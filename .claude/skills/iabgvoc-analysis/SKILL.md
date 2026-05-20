@@ -94,12 +94,12 @@ version: 2.0.0
 
 **當 Skill 被觸發且使用者未提供額外輸入時，立即執行以下動作，不詢問確認**：
 
-1. 直接讀取 Section 3 定義的兩份 CSV（Issue CSV、Requirement CSV）
-2. 執行完整的 Steps 1–4
-3. 將報告寫入 `{working_directory}/analysis_raw.md`
-4. 回報「報告已更新，路徑：analysis_raw.md」
+1. 使用 `Bash` 工具執行：`python d:\W3A_IABGVOC\analyze_iabgvoc.py`
+2. 腳本執行完畢後，讀取 `analysis_raw.md` 末尾的**附錄 D — 稽核資料**
+3. 依 Section 8 的驗證規則執行自動檢查（5 項）
+4. 全部通過 → 回報「報告已完成，驗證通過，路徑：analysis_raw.md」；任一失敗 → 列出失敗項目，報告標記為「待確認」，不宣告完成
 
-**技術執行方式**：使用 `Bash` 工具執行 Python 腳本完成資料處理與指標計算；最終以 `Write` 工具寫入 Markdown 檔案。
+> ⚠️ **嚴禁以 LLM in-context 計算取代 Python 腳本執行**。所有指標數字必須來自腳本輸出，不得由 Claude 自行推算。
 
 ---
 
@@ -139,12 +139,12 @@ version: 2.0.0
 | A | 嚴重性分布 | 了解 Issue/Req 整體品質結構 |
 | B | 狀態分布 | 找出流程瓶頸節點 |
 | C | 版本完成率 | 評估各版本交付風險 |
-| D | C/B 開放清單 | 列出最高優先修復項目 |
+| D | Critical/Blocker Opened 清單 | 列出最高優先修復項目 |
 | E | Backlog 清單 | 找出超過積壓門檻的項目 |
 | F | 高嚴重性 Unassigned | 找出無人認領的高風險項目 |
 | G | Req FMEA 分層 | 需求積壓的風險等級全貌 |
 | H | Top-N 開放 Req | 優先處理的需求清單 |
-| I | 區域分析 | 各 Region / Customer 的 Issue/Req 健康度 |
+| I | 區域分析 | 各 Region 的 Issue/Req 健康度 |
 | J | 模組熱點（功能檢點 Tag）| 最不穩定的功能模組（**僅計算 Excel 合法 Tag**）|
 | K | 特別關注項目 | step_control / 手順 / dgc_fae 全清單 |
 | L | 歷年趨勢 | 新增/關閉速率與解決能力趨勢 |
@@ -152,7 +152,7 @@ version: 2.0.0
 **Analysis J 技術備註**：
 1. 從 Excel D 欄讀取 319 個合法 Tag，建立全小寫比對集合（`valid_tags`）
 2. 拆解每筆 Issue/Req 的 Tag 欄（逗號分隔），過濾出存在於 `valid_tags` 的項目
-3. 以 `collections.defaultdict` 聚合每個 Tag 的 Issue 數、Req 數、C/B 開放數
+3. 以 `collections.defaultdict` 聚合每個 Tag 的 Issue 數、Req 數、Critical/Blocker Opened 數
 4. 輸出：按總量降冪排序的 Top-N 表格（N 見 Section 2）
 
 **其他分析技術備註**：使用 Python `collections.defaultdict` 聚合，排序以 FMEA Total 降冪為主。
@@ -182,14 +182,9 @@ version: 2.0.0
 
 ### Step 4 — 報告產出
 
-**目標**：輸出完整的主管級 Markdown 報告，寫入 `analysis_raw.md`。
+**目標**：`analyze_iabgvoc.py` 執行後直接寫入 `analysis_raw.md`，無需額外步驟。
 
-**執行方式**：呼叫 `report-writer` skill，並傳入以下內容：
-
-1. **資料**：Steps 1–3 計算出的所有指標、表格、風險判斷語句
-2. **格式規範**：使用 Section 6 定義的報告章節結構（執行摘要 → 附錄），不得使用 report-writer 的預設通用結構
-3. **輸出規格**：遵守 Section 7 的格式規則（表格排序、摘要截斷、語言規範）
-4. **輸出路徑**：報告完成後由 `Write` 工具寫入 `{working_directory}/analysis_raw.md`
+報告格式遵守 Section 6 章節結構與 Section 7 輸出規範，由腳本本身產生。
 
 ---
 
@@ -225,7 +220,7 @@ version: 2.0.0
 | 分析方法 | 全體 | 資料來源、截止日、定義說明 |
 | 一、Issue 現況 | TE Leader / RD Leader | 品質結構、版本進度、積壓、Unassigned 全貌 |
 | 二、Requirement 進度 | PM | 需求積壓多嚴重？高風險需求有計畫嗎？ |
-| 三、區域/客戶分析 | PM / 主管 | DGC-China 等外部客戶風險？ |
+| 三、區域分析 | PM / 主管 | DGC-China 等外部客戶風險？ |
 | 四、功能模組熱點 | RD / TE | 哪個模組最不穩定？ |
 | 五、特別關注項目 | PM / RD / TE | step_control / 手順 / dgc_fae 即時狀態 |
 | 六、歷年趨勢分析 | 主管 | 解決能力在改善還是惡化？ |
@@ -257,8 +252,8 @@ version: 2.0.0
 ### 2.3 FMEA 風險分層（未關閉）
 ### 2.4 FMEA Top-N 未關閉 Requirement
 
-## 三、區域 / 客戶分析
-[Region × Customer × Issue/Req 總數 + C/B 開放]
+## 三、區域分析
+[Region × Issue/Req 總數 + Critical/Blocker Opened]
 
 ## 四、功能模組熱點分析（功能檢點 Tag）
 [Top-N 表格；加入風險詮釋]
@@ -302,17 +297,52 @@ Issue / Requirement 明細列：
 
 功能模組熱點：
 ```
-| 功能模組（Tag） | Issue 總數 | Issue 開放 | C/B 開放 | Req 總數 | Req 開放 |
+| 功能模組（Tag） | Issue 總數 | Issue 開放 | Req 總數 | Req 開放 | Critical/Blocker Opened |
 ```
 
 區域分析：
 ```
-| Region | Customer Name | Issue 總數 | Issue 開放 | C/B 開放 | Req 總數 | Req 開放 |
+| Region | Issue 總數 | Issue 開放 | Critical/Blocker Opened | Req 總數 | Req 開放 |
 ```
 
 歷年趨勢：
 ```
 | 年份 | Issue 新增 | Issue 關閉 | Issue 解決率 | Req 新增 | Req 關閉 | Req 解決率 |
 ```
+
+---
+
+## Section 8 — 資料準確性驗證（Audit SOP）
+
+> 本節定義每次產出報告後的自動驗證規則。**報告只有在自動驗證通過後才視為有效。**
+
+### 8.1 自動驗證規則（Claude 執行 Step 2–3）
+
+每次腳本執行完畢，Claude 讀取附錄 D 後需確認以下 5 項：
+
+| 檢查項目 | 通過條件 | 失敗時動作 |
+|----------|----------|-----------|
+| 載入筆數 | Issue + Req 總數 > 0 | 回報「CSV 可能未正確讀取」，停止 |
+| State 分布完整 | 附錄 D 的 Issue State 分布包含 `Closed` 與 `Review & Approval` | 回報「State 分布異常，請確認 CSV 欄位名稱」|
+| 日期解析失敗數 | Issue + Req 日期失敗均為 0 | 回報「X 筆日期解析失敗，open_days 計算可能有誤」|
+| FMEA 解析失敗數 | Issue + Req FMEA 失敗均為 0 | 回報「X 筆 FMEA 解析失敗，風險分層可能有誤」|
+| 開放數一致性 | 附錄 D 標示「✅ 通過」 | 回報「開放數計算與 State 分布不一致，請重新執行」|
+
+### 8.2 人工抽查方法（可選，用於進一步確認）
+
+| 驗證目標 | JIRA 篩選條件 | 對照位置 |
+|----------|---------------|---------|
+| 開放 Issue 數 | `State 不在 {Closed, Review & Approval}` | 附錄 D「開放 Issue 數」 |
+| 開放 Req 數 | `State 不在 {Closed, Review & Approval}` | 附錄 D「開放 Req 數」 |
+| 高風險 Req | `FMEA ≥ 500 AND State 不在 {Closed, Review & Approval}` | 報告 3.3 FMEA 分層高風險計數 |
+| 特定 ID open_days | 手動計算 `Creation Date 至 TODAY` | 報告清單中的「開放天數」欄 |
+
+### 8.3 `is_open` 定義（唯一合法定義）
+
+```
+is_open = State ∉ {"Closed", "Review & Approval"}
+```
+
+凡報告中出現「開放」、「未關閉」、「開放率」等字詞，均以此定義為準。
 
 ---

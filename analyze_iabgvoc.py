@@ -7,7 +7,22 @@ import openpyxl
 ISSUE_PATH = r"D:\W3A_IABGVOC\.claude\assets\Function Requirement csv\IABGVOC Issue.csv"
 REQ_PATH   = r"D:\W3A_IABGVOC\.claude\assets\Function Requirement csv\IABGVOC Requirement.csv"
 XLSX_PATH  = r"D:\W3A_IABGVOC\.claude\assets\Function Tag\OneSW-Form-0023-TC_DIADesigner Function Check List (1).xlsx"
-TODAY = date(2026, 5, 19)
+TODAY = date.today()
+
+# ── Section 7 — Table column definitions (single source of truth, ref: SKILL.md §7) ─
+# When SKILL.md §7 changes, update only these constants; output rows update automatically.
+HDR_ITEM             = "| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | 摘要 |"
+HDR_ITEM_WITH_REGION = "| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | Region | 摘要 |"
+HDR_SPECIAL_ITEM     = "| ID | Tag | 嚴重性 | FMEA | State | Owner | 摘要 |"
+HDR_SPECIAL_APPENDIX = "| ID | Tag | 嚴重性 | FMEA | State | Owner | Region | 摘要 |"
+HDR_TAG_MODULE       = "| 功能模組（Tag） | Issue 總數 | Issue 開放 | Req 總數 | Req 開放 | Critical/Blocker Opened |"
+HDR_REGION           = "| Region | Issue 總數 | Issue 開放 | Critical/Blocker Opened | Req 總數 | Req 開放 |"
+HDR_TREND            = "| 年份 | Issue 新增 | Issue 關閉 | Issue 解決率 | Req 新增 | Req 關閉 | Req 解決率 |"
+
+def make_sep(header):
+    """Auto-generate a markdown separator row that matches the given header."""
+    cols = [c.strip() for c in header.split('|')[1:-1]]
+    return '|' + '|'.join('-' * max(3, len(c)) for c in cols) + '|'
 
 def load_valid_tags():
     wb = openpyxl.load_workbook(XLSX_PATH, data_only=True)
@@ -48,8 +63,10 @@ def load_csv(path):
 def tags(row):
     return [t.strip().lower() for t in row.get('Tag', '').split(',') if t.strip()]
 
+CLOSED_STATES = {'Closed', 'Review & Approval'}
+
 def is_open(row):
-    return row.get('State', '').strip().lower() != 'closed'
+    return row.get('State', '').strip() not in CLOSED_STATES
 
 def fmea(row):
     try:
@@ -171,12 +188,19 @@ req_open.sort(key=lambda r: fmea(r), reverse=True)
 req_top20 = req_open[:20]
 
 # FMEA tier breakdown for open reqs
-fmea_high   = [r for r in req_open if fmea(r) >= 500]
-fmea_mid    = [r for r in req_open if 200 <= fmea(r) < 500]
-fmea_low    = [r for r in req_open if fmea(r) < 200]
+fmea_high = [r for r in req_open if fmea(r) >= 500]
+fmea_mid  = [r for r in req_open if 201 <= fmea(r) <= 499]
+fmea_low  = [r for r in req_open if fmea(r) <= 200]
 
 # Unassigned ratio
 req_unassigned = sum(1 for r in reqs if r.get('Owner','').strip() in ('', 'Unassigned') and is_open(r))
+
+req_sev_counts = defaultdict(lambda: {'total': 0, 'open': 0})
+for r in reqs:
+    sv = r.get('Severity', 'Unknown').strip()
+    req_sev_counts[sv]['total'] += 1
+    if is_open(r):
+        req_sev_counts[sv]['open'] += 1
 
 # ═══════════════════════════════════════════════════════════════════════════
 # 3. 區域 / 客戶分析
@@ -203,23 +227,27 @@ for r in reqs:
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Collect tag stats: only tags defined in the Function Check List xlsx (column D)
-tag_stats = defaultdict(lambda: {'issue': 0, 'req': 0, 'cb_open': 0})
+tag_stats = defaultdict(lambda: {'issue': 0, 'issue_open': 0, 'req': 0, 'req_open': 0, 'cb_open': 0})
 
 for r in issues:
     for t in tags(r):
         if t in VALID_TAGS:
             tag_stats[t]['issue'] += 1
-            if is_open(r) and r.get('Severity','').strip() in ('Blocker','Critical'):
-                tag_stats[t]['cb_open'] += 1
+            if is_open(r):
+                tag_stats[t]['issue_open'] += 1
+                if r.get('Severity','').strip() in ('Blocker','Critical'):
+                    tag_stats[t]['cb_open'] += 1
 
 for r in reqs:
     for t in tags(r):
         if t in VALID_TAGS:
             tag_stats[t]['req'] += 1
+            if is_open(r):
+                tag_stats[t]['req_open'] += 1
 
 # Sort by total volume
 tag_sorted = sorted(tag_stats.items(), key=lambda x: x[1]['issue'] + x[1]['req'], reverse=True)
-tag_top15 = tag_sorted[:15]
+tag_top20 = tag_sorted[:20]
 
 # ═══════════════════════════════════════════════════════════════════════════
 # 5. 特別關注：step_control / 手順 / dgc_fae
@@ -284,8 +312,8 @@ max_fmea_req = req_top20[0] if req_top20 else None
 if max_fmea_req:
     out.append(f"- **最高風險 Requirement**：[{max_fmea_req['ID']}] {max_fmea_req['Summary'][:60]}… (FMEA={fmea(max_fmea_req)})")
 
-top_tag = tag_top15[0][0] if tag_top15 else '-'
-out.append(f"- **最熱點功能模組（Tag）**：`{top_tag}`（Issue+Req 合計 {tag_top15[0][1]['issue']+tag_top15[0][1]['req']} 筆）")
+top_tag = tag_top20[0][0] if tag_top20 else '-'
+out.append(f"- **最熱點功能模組（Tag）**：`{top_tag}`（Issue+Req 合計 {tag_top20[0][1]['issue']+tag_top20[0][1]['req']} 筆）")
 out.append(f"- **老化 Issue（>180天未關閉）**：{len(aged)} 筆\n")
 
 # ─── Methodology ─────────────────────────────────────────────────────────
@@ -295,13 +323,13 @@ out.append("|------|------|")
 out.append(f"| 資料來源 | IABGVOC Issue.csv（{len(issues)} 筆）、IABGVOC Requirement.csv（{len(reqs)} 筆）|")
 out.append("| 時間範圍 | 2021 ~ 2026/05（全部資料）|")
 out.append(f"| 分析基準日 | {TODAY} |")
-out.append("| 開放定義 | State ≠ Closed |")
+out.append("| 開放定義 | State ∉ {Closed, Review & Approval} |")
 out.append("| 老化定義 | 開放超過 180 天（創建日至今）|")
 out.append("| 特別關注 Tag | `step_control`、`手順`、`dgc_fae` |")
 out.append("| FMEA 分層 | 高風險：>=500 / 中風險：200-499 / 低風險：<200 |\n")
 
-# ─── 1. Issue 品質現況（TE Leader）──────────────────────────────────────
-out.append("## 一、Issue 品質現況（TE Leader）\n")
+# ─── 1. Issue 現況（TE Leader / RD Leader）──────────────────────────────
+out.append("## 一、Issue 現況（TE Leader / RD Leader）\n")
 
 out.append("### 1.1 嚴重性分布\n")
 out.append("| 嚴重性 | 總數 | 開放數 | 開放率 |")
@@ -330,17 +358,17 @@ for cat in VERSION_CATEGORIES:
 out.append("")
 
 out.append(f"### 1.4 Critical / Blocker 未關閉項目（共 {len(cb_open)} 筆，依 FMEA 排序）\n")
-out.append("| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | 摘要 |")
-out.append("|----|--------|------|-------|-------|----------|------|")
+out.append(HDR_ITEM)
+out.append(make_sep(HDR_ITEM))
 for r in cb_open:
     summ = r.get('Summary','').strip()[:55].replace('|','｜')
     out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {summ} |")
 out.append("")
 
-out.append(f"### 1.5 老化 Issue（開放 >180 天，共 {len(aged)} 筆）\n")
+out.append(f"### 1.5 Backlog Issue（開放 >{180} 天，共 {len(aged)} 筆）\n")
 if aged:
-    out.append("| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | 摘要 |")
-    out.append("|----|--------|------|-------|-------|----------|------|")
+    out.append(HDR_ITEM)
+    out.append(make_sep(HDR_ITEM))
     for r in aged[:30]:
         summ = r.get('Summary','').strip()[:55].replace('|','｜')
         out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {summ} |")
@@ -348,14 +376,23 @@ if aged:
         out.append(f"\n> 僅列出前 30 筆，完整清單見附錄。")
 out.append("")
 
-# ─── Issue 開發進度（RD Leader）──────────────────────────────────────
-out.append("## 二、Issue 開發進度（RD Leader）\n")
+out.append(f"### 1.6 高嚴重性 Unassigned Issue（共 {len(unassigned_high)} 筆）\n")
+if unassigned_high:
+    out.append(HDR_ITEM)
+    out.append(make_sep(HDR_ITEM))
+    for r in unassigned_high[:20]:
+        summ = r.get('Summary','').strip()[:55].replace('|','｜')
+        out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {summ} |")
+out.append("")
+
+# ─── 2. Requirement 進度（PM）──────────────────────────────────────────
+out.append("## 二、Requirement 進度（PM）\n")
 
 out.append("### 2.1 嚴重性分布\n")
 out.append("| 嚴重性 | 總數 | 開放數 | 開放率 |")
 out.append("|--------|------|--------|--------|")
 for sv in SEV_ORDER:
-    d = sev_counts.get(sv, {'total': 0, 'open': 0})
+    d = req_sev_counts.get(sv, {'total': 0, 'open': 0})
     pct = round(d['open']/d['total']*100, 1) if d['total'] else 0
     out.append(f"| {sv} | {d['total']} | {d['open']} | {pct}% |")
 out.append("")
@@ -363,75 +400,28 @@ out.append("")
 out.append("### 2.2 狀態分布\n")
 out.append("| 狀態 | 數量 |")
 out.append("|------|------|")
-for st, cnt in sorted(state_counts.items(), key=lambda x: -x[1]):
-    out.append(f"| {st} | {cnt} |")
-out.append("")
-
-_top_n = min(20, len(all_open_issues))
-out.append(f"### 2.3 FMEA Total 未處理項目分析（Top {_top_n}，依 FMEA 排序）\n")
-out.append("| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | 摘要 |")
-out.append("|----|--------|------|-------|-------|----------|------|")
-for r in all_open_issues[:_top_n]:
-    summ = r.get('Summary','').strip()[:55].replace('|','｜')
-    out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {summ} |")
-out.append("")
-
-out.append("### 2.4 版本計畫完成率（分類規則）\n")
-out.append("#### 分類彙總\n")
-out.append("| 版本分類 | 總數 | 已關閉 | 完成率 |")
-out.append("|----------|------|--------|--------|")
-for cat in VERSION_CATEGORIES:
-    if cat in cat_counts:
-        d = cat_counts[cat]
-        pct = round(d['closed']/d['total']*100, 1) if d['total'] else 0
-        out.append(f"| {cat} | {d['total']} | {d['closed']} | {pct}% |")
-out.append("")
-
-out.append(f"### 2.5 高嚴重性 Unassigned Issue（共 {len(unassigned_high)} 筆）\n")
-if unassigned_high:
-    out.append("| ID | 嚴重性 | FMEA | State | 開放天數 | 摘要 |")
-    out.append("|----|--------|------|-------|----------|------|")
-    for r in unassigned_high[:20]:
-        summ = r.get('Summary','').strip()[:55].replace('|','｜')
-        out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {open_days(r)} | {summ} |")
-out.append("")
-
-# ─── 2. Requirement 進度（PM）──────────────────────────────────────────
-out.append("## 三、Requirement 進度（PM）\n")
-
-out.append("### 3.1 需求類型分布\n")
-out.append("| 類型 | 總數 | 已關閉 | 完成率 |")
-out.append("|------|------|--------|--------|")
-for rt, d in sorted(req_type_counts.items(), key=lambda x: -x[1]['total']):
-    pct = round(d['closed']/d['total']*100, 1) if d['total'] else 0
-    out.append(f"| {rt} | {d['total']} | {d['closed']} | {pct}% |")
-out.append("")
-
-out.append("### 3.2 狀態分布\n")
-out.append("| 狀態 | 數量 |")
-out.append("|------|------|")
 for st, cnt in sorted(req_state_counts.items(), key=lambda x: -x[1]):
     out.append(f"| {st} | {cnt} |")
 out.append("")
 
-out.append("### 3.3 FMEA 風險分層（未關閉）\n")
-out.append(f"- 高風險（FMEA >= 500）：**{len(fmea_high)}** 筆")
-out.append(f"- 中風險（200-499）：**{len(fmea_mid)}** 筆")
-out.append(f"- 低風險（< 200）：**{len(fmea_low)}** 筆")
+out.append("### 2.3 FMEA 風險分層（未關閉）\n")
+out.append(f"- 高風險（FMEA ≥ 500）：**{len(fmea_high)}** 筆")
+out.append(f"- 中風險（201–499）：**{len(fmea_mid)}** 筆")
+out.append(f"- 低風險（0–200）：**{len(fmea_low)}** 筆")
 out.append(f"- 待辦未指派（Unassigned）：**{req_unassigned}** 筆\n")
 
-out.append(f"### 3.4 FMEA Top 20 未關閉 Requirement（PM 優先關注）\n")
-out.append("| ID | FMEA | 嚴重性 | State | Owner | 摘要 |")
-out.append("|----|------|--------|-------|-------|------|")
+out.append(f"### 2.4 FMEA Top 20 未關閉 Requirement（PM 優先關注）\n")
+out.append(HDR_ITEM)
+out.append(make_sep(HDR_ITEM))
 for r in req_top20:
-    summ = r.get('Summary','').strip()[:60].replace('|','｜')
-    out.append(f"| {r['ID']} | {fmea(r)} | {r.get('Severity','')} | {r.get('State','')} | {r.get('Owner','')} | {summ} |")
+    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {summ} |")
 out.append("")
 
 # ─── 3. 區域分析 ────────────────────────────────────────────────────────
-out.append("## 四、區域 / 客戶分析\n")
-out.append("| Region | Issue 總數 | Issue 開放 | Critical/Blocker 開放 | Req 總數 | Req 開放 |")
-out.append("|--------|-----------|-----------|----------------------|---------|---------|")
+out.append("## 三、區域分析\n")
+out.append(HDR_REGION)
+out.append(make_sep(HDR_REGION))
 all_regions = sorted(set(list(region_issue.keys()) + list(region_req.keys())),
                      key=lambda r: region_issue[r]['total'] + region_req[r]['total'], reverse=True)
 for rg in all_regions:
@@ -441,15 +431,15 @@ for rg in all_regions:
 out.append("")
 
 # ─── 4. 功能模組分析（Tag）──────────────────────────────────────────────
-out.append("## 五、功能模組熱點分析（Tag）\n")
-out.append("| 功能模組（Tag） | Issue | Requirement | C/B 開放 |")
-out.append("|----------------|-------|-------------|---------|")
-for t, d in tag_top15:
-    out.append(f"| `{t}` | {d['issue']} | {d['req']} | {d['cb_open']} |")
+out.append("## 四、功能模組熱點分析（功能檢點 Tag）\n")
+out.append(HDR_TAG_MODULE)
+out.append(make_sep(HDR_TAG_MODULE))
+for t, d in tag_top20:
+    out.append(f"| `{t}` | {d['issue']} | {d['issue_open']} | {d['req']} | {d['req_open']} | {d['cb_open']} |")
 out.append("")
 
 # ─── 5. 特別關注 ──────────────────────────────────────────────────────────
-out.append("## 六、特別關注項目（step_control / 手順 / dgc_fae）\n")
+out.append("## 五、特別關注項目（step_control / 手順 / dgc_fae）\n")
 
 si_open  = [r for r in special_issues if is_open(r)]
 si_closed= [r for r in special_issues if not is_open(r)]
@@ -459,26 +449,26 @@ sr_closed= [r for r in special_reqs   if not is_open(r)]
 out.append(f"**Issue**：共 {len(special_issues)} 筆（開放 {len(si_open)} / 已關閉 {len(si_closed)}）")
 out.append(f"**Requirement**：共 {len(special_reqs)} 筆（開放 {len(sr_open)} / 已關閉 {len(sr_closed)}）\n")
 
-out.append("### 6.1 特別關注 Issue（依 FMEA 排序）\n")
-out.append("| ID | Tag | 嚴重性 | FMEA | State | Owner | 摘要 |")
-out.append("|----|-----|--------|------|-------|-------|------|")
+out.append("### 5.1 特別關注 Issue（依 FMEA 排序）\n")
+out.append(HDR_SPECIAL_ITEM)
+out.append(make_sep(HDR_SPECIAL_ITEM))
 for r in special_issues:
     summ = r.get('Summary','').strip()[:55].replace('|','｜')
     out.append(f"| {r['ID']} | {special_tag_label(r)} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {summ} |")
 out.append("")
 
-out.append("### 6.2 特別關注 Requirement（依 FMEA 排序）\n")
-out.append("| ID | Tag | 嚴重性 | FMEA | State | Owner | 摘要 |")
-out.append("|----|-----|--------|------|-------|-------|------|")
+out.append("### 5.2 特別關注 Requirement（依 FMEA 排序）\n")
+out.append(HDR_SPECIAL_ITEM)
+out.append(make_sep(HDR_SPECIAL_ITEM))
 for r in special_reqs:
     summ = r.get('Summary','').strip()[:55].replace('|','｜')
     out.append(f"| {r['ID']} | {special_tag_label(r)} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {summ} |")
 out.append("")
 
 # ─── 6. 歷年趨勢 ──────────────────────────────────────────────────────────
-out.append("## 七、歷年趨勢分析\n")
-out.append("| 年份 | Issue 新增 | Issue 關閉 | Issue 解決率 | Req 新增 | Req 關閉 | Req 解決率 |")
-out.append("|------|-----------|-----------|------------|---------|---------|---------|")
+out.append("## 六、歷年趨勢分析\n")
+out.append(HDR_TREND)
+out.append(make_sep(HDR_TREND))
 all_years = sorted(set(list(year_issue.keys()) + list(year_req.keys())))
 for yr in all_years:
     yi = year_issue[yr]
@@ -515,16 +505,16 @@ out.append("3. 關注 DGC-China 區域需求（dgc_fae）的回應速度，確�
 out.append("## 附錄（Appendix）\n")
 
 out.append("### A. 全部 Critical/Blocker 開放 Issue\n")
-out.append("| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | Region | 摘要 |")
-out.append("|----|--------|------|-------|-------|----------|--------|------|")
+out.append(HDR_ITEM_WITH_REGION)
+out.append(make_sep(HDR_ITEM_WITH_REGION))
 for r in cb_open:
     summ = r.get('Summary','').strip()[:55].replace('|','｜')
     out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {r.get('Region','')} | {summ} |")
 out.append("")
 
 out.append(f"### B. 老化 Issue 完整清單（>180 天，共 {len(aged)} 筆）\n")
-out.append("| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | Region | 摘要 |")
-out.append("|----|--------|------|-------|-------|----------|--------|------|")
+out.append(HDR_ITEM_WITH_REGION)
+out.append(make_sep(HDR_ITEM_WITH_REGION))
 for r in aged:
     summ = r.get('Summary','').strip()[:55].replace('|','｜')
     out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {r.get('Region','')} | {summ} |")
@@ -532,18 +522,63 @@ out.append("")
 
 out.append("### C. step_control / 手順 / dgc_fae 完整項目列表\n")
 out.append("#### C1. Issue\n")
-out.append("| ID | Tag | 嚴重性 | FMEA | State | Owner | Region | 摘要 |")
-out.append("|----|-----|--------|------|-------|-------|--------|------|")
+out.append(HDR_SPECIAL_APPENDIX)
+out.append(make_sep(HDR_SPECIAL_APPENDIX))
 for r in special_issues:
     summ = r.get('Summary','').strip()[:55].replace('|','｜')
     out.append(f"| {r['ID']} | {special_tag_label(r)} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {r.get('Region','')} | {summ} |")
 out.append("")
 out.append("#### C2. Requirement\n")
-out.append("| ID | Tag | 嚴重性 | FMEA | State | Owner | Region | 摘要 |")
-out.append("|----|-----|--------|------|-------|-------|--------|------|")
+out.append(HDR_SPECIAL_APPENDIX)
+out.append(make_sep(HDR_SPECIAL_APPENDIX))
 for r in special_reqs:
     summ = r.get('Summary','').strip()[:55].replace('|','｜')
     out.append(f"| {r['ID']} | {special_tag_label(r)} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {r.get('Region','')} | {summ} |")
+out.append("")
+
+# ─── Appendix D — Audit Data ─────────────────────────────────────────────
+# Count date/fmea parse failures for audit
+date_fail_issues = sum(1 for r in issues if not parse_date(r.get('Creation Date', '')))
+date_fail_reqs   = sum(1 for r in reqs   if not parse_date(r.get('Creation Date', '')))
+fmea_fail_issues = sum(1 for r in issues if r.get('FMEA Total', '').strip() not in ('', '0') and fmea(r) == 0)
+fmea_fail_reqs   = sum(1 for r in reqs   if r.get('FMEA Total', '').strip() not in ('', '0') and fmea(r) == 0)
+
+issue_state_dist = defaultdict(int)
+for r in issues:
+    issue_state_dist[r.get('State', '').strip()] += 1
+req_state_dist = defaultdict(int)
+for r in reqs:
+    req_state_dist[r.get('State', '').strip()] += 1
+
+open_issues_count = sum(1 for r in issues if is_open(r))
+open_reqs_count   = sum(1 for r in reqs   if is_open(r))
+# Cross-check: open = total - closed_states
+closed_issue_check = sum(v for k, v in issue_state_dist.items() if k in CLOSED_STATES)
+closed_req_check   = sum(v for k, v in req_state_dist.items()   if k in CLOSED_STATES)
+open_issue_check   = len(issues) - closed_issue_check
+open_req_check     = len(reqs)   - closed_req_check
+audit_ok = (open_issues_count == open_issue_check) and (open_reqs_count == open_req_check)
+
+issue_state_str = '、'.join(f"{k}:{v}" for k, v in sorted(issue_state_dist.items(), key=lambda x: -x[1]))
+req_state_str   = '、'.join(f"{k}:{v}" for k, v in sorted(req_state_dist.items(),   key=lambda x: -x[1]))
+
+out.append("## 附錄 D — 稽核資料（Audit）\n")
+out.append("> 此區段由腳本自動產生，用於驗證報告數字的正確性。請在閱讀報告前確認下方數值與 JIRA 一致。\n")
+out.append("| 項目 | 數值 |")
+out.append("|------|------|")
+out.append(f"| Issue CSV 載入筆數 | {len(issues)} |")
+out.append(f"| Requirement CSV 載入筆數 | {len(reqs)} |")
+out.append(f"| 基準日期（TODAY） | {TODAY} |")
+out.append(f"| is_open 排除的 State | {', '.join(sorted(CLOSED_STATES))} |")
+out.append(f"| Issue State 分布 | {issue_state_str} |")
+out.append(f"| Req State 分布 | {req_state_str} |")
+out.append(f"| 日期解析失敗（Issue） | {date_fail_issues} |")
+out.append(f"| 日期解析失敗（Req） | {date_fail_reqs} |")
+out.append(f"| FMEA 解析失敗（Issue） | {fmea_fail_issues} |")
+out.append(f"| FMEA 解析失敗（Req） | {fmea_fail_reqs} |")
+out.append(f"| 開放 Issue 數（計算結果） | {open_issues_count} |")
+out.append(f"| 開放 Req 數（計算結果） | {open_reqs_count} |")
+out.append(f"| 開放數一致性自檢 | {'✅ 通過' if audit_ok else '❌ 失敗：開放數計算與 State 分布不一致，請檢查資料'} |")
 out.append("")
 
 result = '\n'.join(out)
@@ -553,3 +588,4 @@ with open(r"D:\W3A_IABGVOC\analysis_raw.md", 'w', encoding='utf-8') as f:
     f.write(result)
 
 print("\n\n=== DONE: analysis_raw.md saved ===")
+print(f"Audit: Issues={len(issues)}, Reqs={len(reqs)}, Open Issues={open_issues_count}, Open Reqs={open_reqs_count}, Consistency={'OK' if audit_ok else 'FAIL'}")
