@@ -1,4 +1,6 @@
 import csv
+import json
+import os
 import re
 from datetime import datetime, date
 from collections import defaultdict
@@ -9,15 +11,44 @@ REQ_PATH   = r"D:\W3A_IABGVOC\.claude\assets\Function Requirement csv\IABGVOC Re
 XLSX_PATH  = r"D:\W3A_IABGVOC\.claude\assets\Function Tag\OneSW-Form-0023-TC_DIADesigner Function Check List (1).xlsx"
 TODAY = date.today()
 
-# ── Section 7 — Table column definitions (single source of truth, ref: SKILL.md §7) ─
-# When SKILL.md §7 changes, update only these constants; output rows update automatically.
-HDR_ITEM             = "| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | 摘要 |"
-HDR_ITEM_WITH_REGION = "| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | Region | 摘要 |"
-HDR_SPECIAL_ITEM     = "| ID | Tag | 嚴重性 | FMEA | State | Owner | 摘要 |"
-HDR_SPECIAL_APPENDIX = "| ID | Tag | 嚴重性 | FMEA | State | Owner | Region | 摘要 |"
-HDR_TAG_MODULE       = "| 功能模組（Tag） | Issue 總數 | Issue 開放 | Req 總數 | Req 開放 | Critical/Blocker Opened |"
-HDR_REGION           = "| Region | Issue 總數 | Issue 開放 | Critical/Blocker Opened | Req 總數 | Req 開放 |"
-HDR_TREND            = "| 年份 | Issue 新增 | Issue 關閉 | Issue 解決率 | Req 新增 | Req 關閉 | Req 解決率 |"
+# ── Load external definitions (single source of truth for all thresholds/mappings) ──
+DEFS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         r'.claude\assets\iabgvoc-definitions.json')
+
+def _load_definitions():
+    with open(DEFS_PATH, encoding='utf-8') as f:
+        d = json.load(f)
+    required = {'closed_states', 'severity_order', 'special_tags',
+                'thresholds', 'version_mapping', 'table_headers'}
+    missing = required - d.keys()
+    if missing:
+        raise KeyError(f"iabgvoc-definitions.json 缺少必要欄位：{missing}")
+    return d
+
+DEFS = _load_definitions()
+
+CLOSED_STATES  = frozenset(DEFS['closed_states'])
+SEV_ORDER      = DEFS['severity_order']
+SPECIAL_TAGS   = set(DEFS['special_tags'])
+
+_thr = DEFS['thresholds']
+FMEA_HIGH         = _thr['fmea_high']
+FMEA_MID_LOWER    = _thr['fmea_mid_lower']
+FMEA_MID_UPPER    = _thr['fmea_mid_upper']
+BACKLOG_DAYS      = _thr['backlog_days']
+TOP_N             = _thr['top_n']
+SUMMARY_MAX_CHARS = _thr['summary_max_chars']
+
+_hdr = DEFS['table_headers']
+HDR_ITEM             = _hdr['item']
+HDR_ITEM_WITH_REGION = _hdr['item_with_region']
+HDR_SPECIAL_ITEM     = _hdr['special_item']
+HDR_SPECIAL_APPENDIX = _hdr['special_appendix']
+HDR_TAG_MODULE       = _hdr['tag_module']
+HDR_REGION           = _hdr['region']
+HDR_TREND            = _hdr['trend']
+
+VERSION_CATEGORIES = DEFS['version_mapping']['display_order']
 
 def make_sep(header):
     """Auto-generate a markdown separator row that matches the given header."""
@@ -63,8 +94,6 @@ def load_csv(path):
 def tags(row):
     return [t.strip().lower() for t in row.get('Tag', '').split(',') if t.strip()]
 
-CLOSED_STATES = {'Closed', 'Review & Approval'}
-
 def is_open(row):
     return row.get('State', '').strip() not in CLOSED_STATES
 
@@ -106,7 +135,7 @@ cb_open = [r for r in issues if r.get('Severity','').strip() in ('Blocker','Crit
 cb_open.sort(key=lambda r: fmea(r), reverse=True)
 
 # Aging: open > 180 days
-aged = [r for r in issues if is_open(r) and open_days(r) > 180]
+aged = [r for r in issues if is_open(r) and open_days(r) > BACKLOG_DAYS]
 aged.sort(key=lambda r: open_days(r), reverse=True)
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -121,30 +150,15 @@ for r in issues:
     if not is_open(r):
         planned_counts[pf]['closed'] += 1
 
-# Version category mapping
-VERSION_CATEGORIES = [
-    'DIADesigner SP1', 'DIADesigner SP4', 'DIADesigner 1.9.0',
-    'DIADesigner 1.10.0', 'DIADesigner 1.11.0', 'DIADesigner 1.12.0',
-    'DIADesigner 1.13.0', 'DIADesigner 1.14.0', 'DIADesigner 1.15.0',
-    'Need Triage', 'Need More Information', 'Backlog', 'Not Support',
-]
-
 def categorize_version(pf):
+    vm = DEFS['version_mapping']
     if pf in ('', 'Unassigned'):
-        return 'Need Triage'
-    if pf == 'Requirement Analysis Phase':
-        return 'Need More Information'
-    if pf == 'Rev_ProductBacklog_DIADesigner':
-        return 'Backlog'
-    if pf == 'Rev_WheneverBacklog_DIADesigner':
-        return 'Not Support'
-    if 'SP1' in pf:
-        return 'DIADesigner SP1'
-    if 'SP4' in pf:
-        return 'DIADesigner SP4'
-    for v in ['1.9.0', '1.10.0', '1.11.0', '1.12.0', '1.13.0', '1.14.0', '1.15.0']:
-        if v in pf:
-            return f'DIADesigner {v}'
+        return vm['empty_or_unassigned']
+    if pf in vm['exact']:
+        return vm['exact'][pf]
+    for entry in vm['contains']:
+        if entry['pattern'] in pf:
+            return entry['label']
     return pf
 
 cat_counts = defaultdict(lambda: {'total': 0, 'closed': 0})
@@ -185,12 +199,12 @@ for r in reqs:
 # FMEA top 20 open requirements
 req_open = [r for r in reqs if is_open(r)]
 req_open.sort(key=lambda r: fmea(r), reverse=True)
-req_top20 = req_open[:20]
+req_top20 = req_open[:TOP_N]
 
 # FMEA tier breakdown for open reqs
-fmea_high = [r for r in req_open if fmea(r) >= 500]
-fmea_mid  = [r for r in req_open if 201 <= fmea(r) <= 499]
-fmea_low  = [r for r in req_open if fmea(r) <= 200]
+fmea_high = [r for r in req_open if fmea(r) >= FMEA_HIGH]
+fmea_mid  = [r for r in req_open if FMEA_MID_LOWER <= fmea(r) <= FMEA_MID_UPPER]
+fmea_low  = [r for r in req_open if fmea(r) < FMEA_MID_LOWER]
 
 # Unassigned ratio
 req_unassigned = sum(1 for r in reqs if r.get('Owner','').strip() in ('', 'Unassigned') and is_open(r))
@@ -247,13 +261,11 @@ for r in reqs:
 
 # Sort by total volume
 tag_sorted = sorted(tag_stats.items(), key=lambda x: x[1]['issue'] + x[1]['req'], reverse=True)
-tag_top20 = tag_sorted[:20]
+tag_top20 = tag_sorted[:TOP_N]
 
 # ═══════════════════════════════════════════════════════════════════════════
 # 5. 特別關注：step_control / 手順 / dgc_fae
 # ═══════════════════════════════════════════════════════════════════════════
-
-SPECIAL_TAGS = {'step_control', '手順', 'dgc_fae'}
 
 special_issues = [r for r in issues if any(t in SPECIAL_TAGS for t in tags(r))]
 special_reqs   = [r for r in reqs   if any(t in SPECIAL_TAGS for t in tags(r))]
@@ -291,8 +303,6 @@ for r in reqs:
 # OUTPUT
 # ═══════════════════════════════════════════════════════════════════════════
 
-SEV_ORDER = ['Blocker', 'Critical', 'Major', 'Minor']
-
 out = []
 
 out.append("# IABGVOC Issue & Requirement 分析報告\n")
@@ -314,7 +324,7 @@ if max_fmea_req:
 
 top_tag = tag_top20[0][0] if tag_top20 else '-'
 out.append(f"- **最熱點功能模組（Tag）**：`{top_tag}`（Issue+Req 合計 {tag_top20[0][1]['issue']+tag_top20[0][1]['req']} 筆）")
-out.append(f"- **老化 Issue（>180天未關閉）**：{len(aged)} 筆\n")
+out.append(f"- **老化 Issue（>{BACKLOG_DAYS}天未關閉）**：{len(aged)} 筆\n")
 
 # ─── Methodology ─────────────────────────────────────────────────────────
 out.append("## 分析方法（Methodology）\n")
@@ -361,16 +371,16 @@ out.append(f"### 1.4 Critical / Blocker 未關閉項目（共 {len(cb_open)} 筆
 out.append(HDR_ITEM)
 out.append(make_sep(HDR_ITEM))
 for r in cb_open:
-    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    summ = r.get('Summary','').strip()[:SUMMARY_MAX_CHARS].replace('|','｜')
     out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {summ} |")
 out.append("")
 
-out.append(f"### 1.5 Backlog Issue（開放 >{180} 天，共 {len(aged)} 筆）\n")
+out.append(f"### 1.5 Backlog Issue（開放 >{BACKLOG_DAYS} 天，共 {len(aged)} 筆）\n")
 if aged:
     out.append(HDR_ITEM)
     out.append(make_sep(HDR_ITEM))
     for r in aged[:30]:
-        summ = r.get('Summary','').strip()[:55].replace('|','｜')
+        summ = r.get('Summary','').strip()[:SUMMARY_MAX_CHARS].replace('|','｜')
         out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {summ} |")
     if len(aged) > 30:
         out.append(f"\n> 僅列出前 30 筆，完整清單見附錄。")
@@ -381,7 +391,7 @@ if unassigned_high:
     out.append(HDR_ITEM)
     out.append(make_sep(HDR_ITEM))
     for r in unassigned_high[:20]:
-        summ = r.get('Summary','').strip()[:55].replace('|','｜')
+        summ = r.get('Summary','').strip()[:SUMMARY_MAX_CHARS].replace('|','｜')
         out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {summ} |")
 out.append("")
 
@@ -414,7 +424,7 @@ out.append(f"### 2.4 FMEA Top 20 未關閉 Requirement（PM 優先關注）\n")
 out.append(HDR_ITEM)
 out.append(make_sep(HDR_ITEM))
 for r in req_top20:
-    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    summ = r.get('Summary','').strip()[:SUMMARY_MAX_CHARS].replace('|','｜')
     out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {summ} |")
 out.append("")
 
@@ -453,7 +463,7 @@ out.append("### 5.1 特別關注 Issue（依 FMEA 排序）\n")
 out.append(HDR_SPECIAL_ITEM)
 out.append(make_sep(HDR_SPECIAL_ITEM))
 for r in special_issues:
-    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    summ = r.get('Summary','').strip()[:SUMMARY_MAX_CHARS].replace('|','｜')
     out.append(f"| {r['ID']} | {special_tag_label(r)} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {summ} |")
 out.append("")
 
@@ -461,7 +471,7 @@ out.append("### 5.2 特別關注 Requirement（依 FMEA 排序）\n")
 out.append(HDR_SPECIAL_ITEM)
 out.append(make_sep(HDR_SPECIAL_ITEM))
 for r in special_reqs:
-    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    summ = r.get('Summary','').strip()[:SUMMARY_MAX_CHARS].replace('|','｜')
     out.append(f"| {r['ID']} | {special_tag_label(r)} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {summ} |")
 out.append("")
 
@@ -508,7 +518,7 @@ out.append("### A. 全部 Critical/Blocker 開放 Issue\n")
 out.append(HDR_ITEM_WITH_REGION)
 out.append(make_sep(HDR_ITEM_WITH_REGION))
 for r in cb_open:
-    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    summ = r.get('Summary','').strip()[:SUMMARY_MAX_CHARS].replace('|','｜')
     out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {r.get('Region','')} | {summ} |")
 out.append("")
 
@@ -516,7 +526,7 @@ out.append(f"### B. 老化 Issue 完整清單（>180 天，共 {len(aged)} 筆�
 out.append(HDR_ITEM_WITH_REGION)
 out.append(make_sep(HDR_ITEM_WITH_REGION))
 for r in aged:
-    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    summ = r.get('Summary','').strip()[:SUMMARY_MAX_CHARS].replace('|','｜')
     out.append(f"| {r['ID']} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {open_days(r)} | {r.get('Region','')} | {summ} |")
 out.append("")
 
@@ -525,14 +535,14 @@ out.append("#### C1. Issue\n")
 out.append(HDR_SPECIAL_APPENDIX)
 out.append(make_sep(HDR_SPECIAL_APPENDIX))
 for r in special_issues:
-    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    summ = r.get('Summary','').strip()[:SUMMARY_MAX_CHARS].replace('|','｜')
     out.append(f"| {r['ID']} | {special_tag_label(r)} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {r.get('Region','')} | {summ} |")
 out.append("")
 out.append("#### C2. Requirement\n")
 out.append(HDR_SPECIAL_APPENDIX)
 out.append(make_sep(HDR_SPECIAL_APPENDIX))
 for r in special_reqs:
-    summ = r.get('Summary','').strip()[:55].replace('|','｜')
+    summ = r.get('Summary','').strip()[:SUMMARY_MAX_CHARS].replace('|','｜')
     out.append(f"| {r['ID']} | {special_tag_label(r)} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {r.get('Region','')} | {summ} |")
 out.append("")
 

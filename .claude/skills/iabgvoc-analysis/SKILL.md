@@ -47,16 +47,21 @@ version: 2.0.0
 
 ## Section 2 — 可調整參數
 
-> 所有判斷閾值集中在此。若需調整，修改本節數值後，執行邏輯自動適用新值。
-
-| 參數名稱 | 預設值 | 說明 |
-|----------|--------|------|
-| FMEA 高風險門檻 | ≥ 500 | 🔴 High Risk |
-| FMEA 中風險門檻 | 201–499 | 🟡 Medium Risk |
-| FMEA 中風險門檻 | 0-200 | 🟢 Low Risk |
-| Backlog issue/requirement | 180 天 | 開放天數超過此值視為積壓項目 |
-| Top-N 顯示筆數 | 20 | 報告中各 Top 表格列數 |
-| 版本映射規則 | 見 Section 5 | Planned For 欄位 → 顯示版本類別 |
+> 所有判斷閾值與映射規則的**唯一來源**為：
+> `.claude/assets/iabgvoc-definitions.json`
+>
+> 若需調整閾值、新增版本號、或修改特別關注 Tag，請直接修改該 JSON 檔的對應欄位，下次執行腳本自動生效，無需修改 Python 程式碼：
+>
+> | JSON 欄位 | 說明 |
+> |-----------|------|
+> | `thresholds.fmea_high` | FMEA 高風險門檻（預設 500）|
+> | `thresholds.fmea_mid_lower / fmea_mid_upper` | FMEA 中風險範圍（預設 201–499）|
+> | `thresholds.backlog_days` | Backlog 老化門檻天數（預設 180）|
+> | `thresholds.top_n` | 各 Top 表格列數（預設 20）|
+> | `version_mapping.contains` | 版本號對應顯示名稱（新增版本時在此陣列末端新增一筆）|
+> | `version_mapping.display_order` | 版本完成率表格的列出順序 |
+> | `special_tags` | 特別關注 Tag 清單（預設 step_control、手順、dgc_fae）|
+> | `closed_states` | is_open 判斷排除的 State 值 |
 
 ---
 
@@ -190,23 +195,14 @@ version: 2.0.0
 
 ## Section 5 — 版本映射規則
 
-| Planned For 原始值 | 報告顯示類別 |
-|-------------------|-------------|
-| 含 "SP1" | DIADesigner SP1 |
-| 含 "SP4" | DIADesigner SP4 |
-| 含 "1.9.0" | DIADesigner 1.9.0 |
-| 含 "1.10.0" | DIADesigner 1.10.0 |
-| 含 "1.11.0" | DIADesigner 1.11.0 |
-| 含 "1.12.0" | DIADesigner 1.12.0 |
-| 含 "1.13.0" | DIADesigner 1.13.0 |
-| 含 "1.14.0" | DIADesigner 1.14.0 |
-| 含 "1.15.0" | DIADesigner 1.15.0 |
-| 空值 / "Unassigned" | Need Triage |
-| "Requirement Analysis Phase" | Need More Information |
-| "Rev_ProductBacklog_DIADesigner" | Backlog |
-| "Rev_WheneverBacklog_DIADesigner" | Not Support |
+版本映射規則定義於 `.claude/assets/iabgvoc-definitions.json` 的 `version_mapping` 欄位，結構說明：
 
-> ⚠️ **維護注意**：每次出現新版本號（如 1.16.0）時，須在此表新增對應規則。
+- `exact`：精確字串對應（如 `"Requirement Analysis Phase"` → `"Need More Information"`）
+- `contains`：有序子字串比對陣列（如含 `"SP1"` → `"DIADesigner SP1"`）；比對順序即優先順序
+- `empty_or_unassigned`：空值或 `"Unassigned"` 的對應分類
+- `display_order`：報告版本完成率表格的列出順序
+
+> ⚠️ **新增版本時**：在 `version_mapping.contains` 陣列末端新增 `{"pattern": "1.16.0", "label": "DIADesigner 1.16.0"}`，並在 `display_order` 的 `"Need Triage"` 之前插入 `"DIADesigner 1.16.0"`。
 
 ---
 
@@ -284,31 +280,11 @@ version: 2.0.0
 - **格式**：Markdown，使用 GitHub Flavored Markdown 表格
 - **語言**：繁體中文，ID / Owner / Tag / State 原文保留英文
 - **表格排序**：FMEA Total 降冪
-- **摘要截斷**：每列 Summary 最多 55 字元，`|` 符號轉為 `｜`
+- **摘要截斷**：每列 Summary 最多 `thresholds.summary_max_chars` 字元（預設 55），`|` 符號轉為 `｜`
 - **輸出路徑**：`{working_directory}/analysis_raw.md`（由 `Write` 工具寫入）
 - 報告產出後，告知使用者檔案已儲存
 
-**各表格欄位定義**：
-
-Issue / Requirement 明細列：
-```
-| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | 摘要 |
-```
-
-功能模組熱點：
-```
-| 功能模組（Tag） | Issue 總數 | Issue 開放 | Req 總數 | Req 開放 | Critical/Blocker Opened |
-```
-
-區域分析：
-```
-| Region | Issue 總數 | Issue 開放 | Critical/Blocker Opened | Req 總數 | Req 開放 |
-```
-
-歷年趨勢：
-```
-| 年份 | Issue 新增 | Issue 關閉 | Issue 解決率 | Req 新增 | Req 關閉 | Req 解決率 |
-```
+**各表格欄位定義**：各表格的欄位名稱定義於 `.claude/assets/iabgvoc-definitions.json` 的 `table_headers` 欄位（`item`、`item_with_region`、`special_item`、`tag_module`、`region`、`trend`）。腳本啟動時讀取後賦值給 `HDR_*` 常數，輸出行格式由這些常數驅動。
 
 ---
 
@@ -344,5 +320,7 @@ is_open = State ∉ {"Closed", "Review & Approval"}
 ```
 
 凡報告中出現「開放」、「未關閉」、「開放率」等字詞，均以此定義為準。
+
+> 具體排除的 State 值定義於 `.claude/assets/iabgvoc-definitions.json` 的 `closed_states` 陣列。
 
 ---

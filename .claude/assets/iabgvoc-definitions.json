@@ -1,0 +1,59 @@
+{
+  "_meta": {
+    "description": "IABGVOC 分析系統唯一定義來源。analyze_iabgvoc.py 啟動時讀取此檔；SKILL.md 中的參數說明均參照此檔。修改任何閾值或映射規則只需更新此檔，下次執行腳本自動生效。",
+    "schema_version": "1.0.0",
+    "last_updated": "2026-05-20"
+  },
+
+  "closed_states": ["Closed", "Review & Approval"],
+
+  "severity_order": ["Blocker", "Critical", "Major", "Minor"],
+
+  "special_tags": ["step_control", "手順", "dgc_fae"],
+
+  "thresholds": {
+    "fmea_high": 500,
+    "fmea_mid_lower": 201,
+    "fmea_mid_upper": 499,
+    "backlog_days": 180,
+    "top_n": 20,
+    "summary_max_chars": 55
+  },
+
+  "version_mapping": {
+    "exact": {
+      "Requirement Analysis Phase": "Need More Information",
+      "Rev_ProductBacklog_DIADesigner": "Backlog",
+      "Rev_WheneverBacklog_DIADesigner": "Not Support"
+    },
+    "empty_or_unassigned": "Need Triage",
+    "contains": [
+      { "pattern": "SP1",    "label": "DIADesigner SP1" },
+      { "pattern": "SP4",    "label": "DIADesigner SP4" },
+      { "pattern": "1.9.0",  "label": "DIADesigner 1.9.0" },
+      { "pattern": "1.10.0", "label": "DIADesigner 1.10.0" },
+      { "pattern": "1.11.0", "label": "DIADesigner 1.11.0" },
+      { "pattern": "1.12.0", "label": "DIADesigner 1.12.0" },
+      { "pattern": "1.13.0", "label": "DIADesigner 1.13.0" },
+      { "pattern": "1.14.0", "label": "DIADesigner 1.14.0" },
+      { "pattern": "1.15.0", "label": "DIADesigner 1.15.0" }
+    ],
+    "display_order": [
+      "DIADesigner SP1", "DIADesigner SP4",
+      "DIADesigner 1.9.0", "DIADesigner 1.10.0", "DIADesigner 1.11.0",
+      "DIADesigner 1.12.0", "DIADesigner 1.13.0", "DIADesigner 1.14.0",
+      "DIADesigner 1.15.0",
+      "Need Triage", "Need More Information", "Backlog", "Not Support"
+    ]
+  },
+
+  "table_headers": {
+    "item":             "| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | 摘要 |",
+    "item_with_region": "| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | Region | 摘要 |",
+    "special_item":     "| ID | Tag | 嚴重性 | FMEA | State | Owner | 摘要 |",
+    "special_appendix": "| ID | Tag | 嚴重性 | FMEA | State | Owner | Region | 摘要 |",
+    "tag_module":       "| 功能模組（Tag） | Issue 總數 | Issue 開放 | Req 總數 | Req 開放 | Critical/Blocker Opened |",
+    "region":           "| Region | Issue 總數 | Issue 開放 | Critical/Blocker Opened | Req 總數 | Req 開放 |",
+    "trend":            "| 年份 | Issue 新增 | Issue 關閉 | Issue 解決率 | Req 新增 | Req 關閉 | Req 解決率 |"
+  }
+}
