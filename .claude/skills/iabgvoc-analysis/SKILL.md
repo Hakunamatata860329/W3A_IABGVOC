@@ -255,8 +255,10 @@ version: 2.0.0
 [Top-N 表格；加入風險詮釋]
 
 ## 五、特別關注項目（step_control / 手順 / dgc_fae）
-### 5.1 Issue
-### 5.2 Requirement
+> 僅列出開放項目（State 不含 Closed / Review & Approval）
+### 5.1 step_control（Issue + Requirement，依 FMEA 排序）
+### 5.2 手順（Issue + Requirement，依 FMEA 排序）
+### 5.3 dgc_fae（Issue + Requirement，依 FMEA 排序）
 
 ## 六、歷年趨勢分析
 [表格 + 1–2 句趨勢詮釋]

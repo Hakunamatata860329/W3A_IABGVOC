@@ -56,7 +56,7 @@
     "severity_dist":    "| 嚴重性 | 總數 | 開放數 | 開放率 |",
     "item":             "| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | 摘要 |",
     "item_with_region": "| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | Region | 摘要 |",
-    "special_item":     "| ID | Tag | 嚴重性 | FMEA | State | Owner | 摘要 |",
+    "special_item":     "| ID | 類型 | 嚴重性 | FMEA | State | Owner | 摘要 |",
     "special_appendix": "| ID | Tag | 嚴重性 | FMEA | State | Owner | Region | 摘要 |",
     "tag_module":       "| 功能模組（Tag） | Issue 總數 | Issue 開放 | Req 總數 | Req 開放 | Critical/Blocker Opened |",
     "region":           "| Region | Issue 總數 | Issue 開放 | Critical/Blocker Opened | Req 總數 | Req 開放 |",

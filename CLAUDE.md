@@ -62,3 +62,20 @@ For multi-step tasks, state a brief plan:
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
 These guidelines are working if: fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+---
+
+## 專案架構：檔案同步規則
+
+此專案的報告由 `analyze_iabgvoc.py` 產生，設定集中在 `iabgvoc-definitions.json`，報告模板定義在 `SKILL.md`。**三者必須保持一致**；修改任一處前，先確認下表其他欄位是否需要連動。
+
+| 改動類型 | 需同步的檔案 |
+|---|---|
+| 報告章節結構（新增/移除/重組節次）| `analyze_iabgvoc.py`（輸出邏輯）、`iabgvoc-definitions.json`（table_headers）、`SKILL.md`（章節定義）|
+| 欄位定義（欄位名稱、欄位順序）| `iabgvoc-definitions.json`（table_headers）、`analyze_iabgvoc.py`（對應 f-string）|
+| 過濾條件（開放/關閉定義、只顯示開放等）| `analyze_iabgvoc.py`（過濾邏輯）、`SKILL.md`（說明文字）|
+| 閾值（FMEA 分層、Backlog 天數、Top-N）| `iabgvoc-definitions.json` 即可，腳本啟動時自動讀取 |
+| 版本映射規則 | `iabgvoc-definitions.json` 即可 |
+| Special tag 新增/移除 | `iabgvoc-definitions.json`（special_tags）、`SKILL.md` |
+
+**執行驗證**：改完後必須執行 `python3 analyze_iabgvoc.py`，確認無錯誤且 Audit 行顯示 `Consistency=OK`。

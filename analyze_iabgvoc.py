@@ -455,30 +455,38 @@ out.append("")
 
 # ─── 5. 特別關注 ──────────────────────────────────────────────────────────
 out.append("## 五、特別關注項目（step_control / 手順 / dgc_fae）\n")
+out.append("> 僅列出開放項目（State 不含 Closed / Review & Approval）\n")
 
-si_open  = [r for r in special_issues if is_open(r)]
-si_closed= [r for r in special_issues if not is_open(r)]
-sr_open  = [r for r in special_reqs   if is_open(r)]
-sr_closed= [r for r in special_reqs   if not is_open(r)]
+def open_items_for_tag(tag):
+    ti = [r for r in special_issues if tag in tags(r) and is_open(r)]
+    tr = [r for r in special_reqs   if tag in tags(r) and is_open(r)]
+    return ti, tr
 
-out.append(f"**Issue**：共 {len(special_issues)} 筆（開放 {len(si_open)} / 已關閉 {len(si_closed)}）")
-out.append(f"**Requirement**：共 {len(special_reqs)} 筆（開放 {len(sr_open)} / 已關閉 {len(sr_closed)}）\n")
+# 總覽表
+out.append("| Tag | Issue（開放）| Req（開放）| 開放合計 |")
+out.append("|-----|------------:|----------:|---------:|")
+total_i, total_r = 0, 0
+for tag in DEFS['special_tags']:
+    ti, tr = open_items_for_tag(tag)
+    total_i += len(ti); total_r += len(tr)
+    out.append(f"| {tag} | {len(ti)} | {len(tr)} | {len(ti)+len(tr)} |")
+out.append(f"| **合計** | **{total_i}** | **{total_r}** | **{total_i+total_r}** |\n")
 
-out.append("### 5.1 特別關注 Issue（依 FMEA 排序）\n")
-out.append(HDR_SPECIAL_ITEM)
-out.append(make_sep(HDR_SPECIAL_ITEM))
-for r in special_issues:
-    summ = r.get('Summary','').strip()[:SUMMARY_MAX_CHARS].replace('|','｜')
-    out.append(f"| {r['ID']} | {special_tag_label(r)} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {summ} |")
-out.append("")
-
-out.append("### 5.2 特別關注 Requirement（依 FMEA 排序）\n")
-out.append(HDR_SPECIAL_ITEM)
-out.append(make_sep(HDR_SPECIAL_ITEM))
-for r in special_reqs:
-    summ = r.get('Summary','').strip()[:SUMMARY_MAX_CHARS].replace('|','｜')
-    out.append(f"| {r['ID']} | {special_tag_label(r)} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {summ} |")
-out.append("")
+# 各 tag 小節
+for idx, tag in enumerate(DEFS['special_tags'], 1):
+    ti, tr = open_items_for_tag(tag)
+    combined = sorted(
+        [(r, 'Issue') for r in ti] + [(r, 'Req') for r in tr],
+        key=lambda x: fmea(x[0]), reverse=True
+    )
+    out.append(f"### 5.{idx} {tag}（Issue + Requirement，依 FMEA 排序）\n")
+    out.append(f"**Issue**：開放 {len(ti)} 筆　**Requirement**：開放 {len(tr)} 筆\n")
+    out.append(HDR_SPECIAL_ITEM)
+    out.append(make_sep(HDR_SPECIAL_ITEM))
+    for r, kind in combined:
+        summ = r.get('Summary','').strip()[:SUMMARY_MAX_CHARS].replace('|','｜')
+        out.append(f"| {r['ID']} | {kind} | {r.get('Severity','')} | {fmea(r)} | {r.get('State','')} | {r.get('Owner','')} | {summ} |")
+    out.append("")
 
 # ─── 6. 歷年趨勢 ──────────────────────────────────────────────────────────
 out.append("## 六、歷年趨勢分析\n")
