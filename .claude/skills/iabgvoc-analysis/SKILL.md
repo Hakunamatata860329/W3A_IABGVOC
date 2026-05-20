@@ -18,7 +18,7 @@ version: 2.0.0
 | 最後更新 | 2026-05-20 |
 | 觸發條件 | 使用者要求分析專案健康狀態、生成風險報告、審查 Issue/Requirement、或為軟體版本產出管理摘要 |
 | 輸出語言 | 繁體中文；ID、Owner 姓名、Tag、State 值保持英文原文 |
-| 輸出檔案 | `{working_directory}/analysis_raw.md` |
+| 輸出檔案 | `{working_directory}/output/analysis_raw.md` |
 
 ---
 
@@ -100,9 +100,9 @@ version: 2.0.0
 **當 Skill 被觸發且使用者未提供額外輸入時，立即執行以下動作，不詢問確認**：
 
 1. 使用 `Bash` 工具執行：`python d:\W3A_IABGVOC\analyze_iabgvoc.py`
-2. 腳本執行完畢後，讀取 `analysis_raw.md` 末尾的**附錄 D — 稽核資料**
+2. 腳本執行完畢後，讀取 `output/analysis_raw.md` 末尾的**附錄 D — 稽核資料**
 3. 依 Section 8 的驗證規則執行自動檢查（5 項）
-4. 全部通過 → 回報「報告已完成，驗證通過，路徑：analysis_raw.md」；任一失敗 → 列出失敗項目，報告標記為「待確認」，不宣告完成
+4. 全部通過 → 回報「報告已完成，驗證通過，路徑：output/analysis_raw.md」；任一失敗 → 列出失敗項目，報告標記為「待確認」，不宣告完成
 
 > ⚠️ **嚴禁以 LLM in-context 計算取代 Python 腳本執行**。所有指標數字必須來自腳本輸出，不得由 Claude 自行推算。
 
@@ -114,7 +114,7 @@ version: 2.0.0
 
 1. **CSV 檔案路徑** — Issue CSV 和/或 Requirement CSV（覆蓋 Section 3 預設路徑）
 2. **直接貼上原始資料**
-3. **已存在的 `analysis_raw.md`** — 略過解析，直接進行風險詮釋
+3. **已存在的 `output/analysis_raw.md`** — 略過解析，直接進行風險詮釋
 4. **特定問題** — 例如「哪個 Owner 持有最多 Blocker？」
 
 若 Issue 與 Requirement 資料均完全缺失，才向使用者要求補充。
@@ -187,7 +187,7 @@ version: 2.0.0
 
 ### Step 4 — 報告產出
 
-**目標**：`analyze_iabgvoc.py` 執行後直接寫入 `analysis_raw.md`，無需額外步驟。
+**目標**：`analyze_iabgvoc.py` 執行後直接寫入 `output/analysis_raw.md`，無需額外步驟。
 
 報告格式遵守 Section 6 章節結構與 Section 7 輸出規範，由腳本本身產生。
 
@@ -281,7 +281,7 @@ version: 2.0.0
 - **語言**：繁體中文，ID / Owner / Tag / State 原文保留英文
 - **表格排序**：FMEA Total 降冪
 - **摘要截斷**：每列 Summary 最多 `thresholds.summary_max_chars` 字元（預設 55），`|` 符號轉為 `｜`
-- **輸出路徑**：`{working_directory}/analysis_raw.md`（由 `Write` 工具寫入）
+- **輸出路徑**：`{working_directory}/output/analysis_raw.md`（由 `Write` 工具寫入）
 - 報告產出後，告知使用者檔案已儲存
 
 **各表格欄位定義**：各表格的欄位名稱定義於 `.claude/assets/iabgvoc-definitions.json` 的 `table_headers` 欄位（`item`、`item_with_region`、`special_item`、`tag_module`、`region`、`trend`）。腳本啟動時讀取後賦值給 `HDR_*` 常數，輸出行格式由這些常數驅動。
@@ -319,8 +319,9 @@ version: 2.0.0
 is_open = State ∉ {"Closed", "Review & Approval"}
 ```
 
-凡報告中出現「開放」、「未關閉」、「開放率」等字詞，均以此定義為準。
-
-> 具體排除的 State 值定義於 `.claude/assets/iabgvoc-definitions.json` 的 `closed_states` 陣列。
+凡報告中涉及開放/老化判斷及表格欄位名稱，均以 `.claude/assets/iabgvoc-definitions.json` 為準：
+- 開放/老化行標籤：`labels.open_definition`、`labels.aging_definition`
+- 嚴重性分布欄位：`table_headers.severity_dist`
+- 排除的 State 值：`closed_states` 陣列
 
 ---

@@ -47,7 +47,13 @@
     ]
   },
 
+  "labels": {
+    "open_definition": "開放定義",
+    "aging_definition": "老化定義"
+  },
+
   "table_headers": {
+    "severity_dist":    "| 嚴重性 | 總數 | 開放數 | 開放率 |",
     "item":             "| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | 摘要 |",
     "item_with_region": "| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | Region | 摘要 |",
     "special_item":     "| ID | Tag | 嚴重性 | FMEA | State | Owner | 摘要 |",

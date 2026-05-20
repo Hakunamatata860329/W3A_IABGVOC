@@ -6,20 +6,20 @@ from datetime import datetime, date
 from collections import defaultdict
 import openpyxl
 
-ISSUE_PATH = r"D:\W3A_IABGVOC\.claude\assets\Function Requirement csv\IABGVOC Issue.csv"
-REQ_PATH   = r"D:\W3A_IABGVOC\.claude\assets\Function Requirement csv\IABGVOC Requirement.csv"
-XLSX_PATH  = r"D:\W3A_IABGVOC\.claude\assets\Function Tag\OneSW-Form-0023-TC_DIADesigner Function Check List (1).xlsx"
+_ROOT      = os.path.dirname(os.path.abspath(__file__))
+ISSUE_PATH = os.path.join(_ROOT, 'data', 'IABGVOC Issue.csv')
+REQ_PATH   = os.path.join(_ROOT, 'data', 'IABGVOC Requirement.csv')
+XLSX_PATH  = os.path.join(_ROOT, 'data', 'OneSW-Form-0023-TC_DIADesigner Function Check List (1).xlsx')
 TODAY = date.today()
 
 # ── Load external definitions (single source of truth for all thresholds/mappings) ──
-DEFS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                         r'.claude\assets\iabgvoc-definitions.json')
+DEFS_PATH = os.path.join(_ROOT, 'iabgvoc-definitions.json')
 
 def _load_definitions():
     with open(DEFS_PATH, encoding='utf-8') as f:
         d = json.load(f)
     required = {'closed_states', 'severity_order', 'special_tags',
-                'thresholds', 'version_mapping', 'table_headers'}
+                'thresholds', 'version_mapping', 'table_headers', 'labels'}
     missing = required - d.keys()
     if missing:
         raise KeyError(f"iabgvoc-definitions.json 缺少必要欄位：{missing}")
@@ -40,6 +40,7 @@ TOP_N             = _thr['top_n']
 SUMMARY_MAX_CHARS = _thr['summary_max_chars']
 
 _hdr = DEFS['table_headers']
+HDR_SEVERITY_DIST    = _hdr['severity_dist']
 HDR_ITEM             = _hdr['item']
 HDR_ITEM_WITH_REGION = _hdr['item_with_region']
 HDR_SPECIAL_ITEM     = _hdr['special_item']
@@ -47,6 +48,10 @@ HDR_SPECIAL_APPENDIX = _hdr['special_appendix']
 HDR_TAG_MODULE       = _hdr['tag_module']
 HDR_REGION           = _hdr['region']
 HDR_TREND            = _hdr['trend']
+
+_lbl = DEFS['labels']
+LABEL_OPEN_DEF   = _lbl['open_definition']
+LABEL_AGING_DEF  = _lbl['aging_definition']
 
 VERSION_CATEGORIES = DEFS['version_mapping']['display_order']
 
@@ -333,8 +338,8 @@ out.append("|------|------|")
 out.append(f"| 資料來源 | IABGVOC Issue.csv（{len(issues)} 筆）、IABGVOC Requirement.csv（{len(reqs)} 筆）|")
 out.append("| 時間範圍 | 2021 ~ 2026/05（全部資料）|")
 out.append(f"| 分析基準日 | {TODAY} |")
-out.append("| 開放定義 | State ∉ {Closed, Review & Approval} |")
-out.append("| 老化定義 | 開放超過 180 天（創建日至今）|")
+out.append(f"| {LABEL_OPEN_DEF} | State ∉ {{{', '.join(DEFS['closed_states'])}}} |")
+out.append(f"| {LABEL_AGING_DEF} | 開放超過 {BACKLOG_DAYS} 天（創建日至今）|")
 out.append("| 特別關注 Tag | `step_control`、`手順`、`dgc_fae` |")
 out.append("| FMEA 分層 | 高風險：>=500 / 中風險：200-499 / 低風險：<200 |\n")
 
@@ -342,7 +347,7 @@ out.append("| FMEA 分層 | 高風險：>=500 / 中風險：200-499 / 低風險�
 out.append("## 一、Issue 現況（TE Leader / RD Leader）\n")
 
 out.append("### 1.1 嚴重性分布\n")
-out.append("| 嚴重性 | 總數 | 開放數 | 開放率 |")
+out.append(HDR_SEVERITY_DIST)
 out.append("|--------|------|--------|--------|")
 for sv in SEV_ORDER:
     d = sev_counts.get(sv, {'total': 0, 'open': 0})
@@ -399,7 +404,7 @@ out.append("")
 out.append("## 二、Requirement 進度（PM）\n")
 
 out.append("### 2.1 嚴重性分布\n")
-out.append("| 嚴重性 | 總數 | 開放數 | 開放率 |")
+out.append(HDR_SEVERITY_DIST)
 out.append("|--------|------|--------|--------|")
 for sv in SEV_ORDER:
     d = req_sev_counts.get(sv, {'total': 0, 'open': 0})
@@ -594,8 +599,8 @@ out.append("")
 result = '\n'.join(out)
 
 # Save raw analysis for report-writer
-with open(r"D:\W3A_IABGVOC\analysis_raw.md", 'w', encoding='utf-8') as f:
+with open(os.path.join(_ROOT, 'output', 'analysis_raw.md'), 'w', encoding='utf-8') as f:
     f.write(result)
 
-print("\n\n=== DONE: analysis_raw.md saved ===")
+print("\n\n=== DONE: output/analysis_raw.md saved ===")
 print(f"Audit: Issues={len(issues)}, Reqs={len(reqs)}, Open Issues={open_issues_count}, Open Reqs={open_reqs_count}, Consistency={'OK' if audit_ok else 'FAIL'}")
