@@ -52,6 +52,14 @@
     "aging_definition": "老化定義"
   },
 
+  "version_schedule": {
+    "DIADesigner 1.11.0": {"start_date": "2025-08-01", "release_date": "2025-10-31"},
+    "DIADesigner 1.12.0": {"start_date": "2025-11-01", "release_date": "2026-01-31"},
+    "DIADesigner 1.13.0": {"start_date": "2026-01-01", "release_date": "2026-03-31"},
+    "DIADesigner 1.14.0": {"start_date": "2026-04-01", "release_date": "2026-06-30"},
+    "DIADesigner 1.15.0": {"start_date": "2026-07-01", "release_date": "2026-09-30"}
+  },
+
   "table_headers": {
     "severity_dist":    "| 嚴重性 | 總數 | 開放數 | 開放率 |",
     "item":             "| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | 摘要 |",
