@@ -41,14 +41,14 @@ version: 2.0.0
 
 **功能檢點 Tag 合法性**：Analysis J 只統計 CSV 中對應 Excel D 欄的 Tag；JIRA 流程標籤（`jira_voc_sc`、`w3a`、`escape`、版本號 tag 等）一律排除。
 
-**Excel 來源檔案**：`.claude/assets/Function Tag/OneSW-Form-0023-TC_DIADesigner Function Check List (1).xlsx`，D 欄「功能關鍵字 - Tag（RD 維護）」。維護時以此欄位為唯一來源，不得自行新增 Tag。
+**Excel 來源檔案**：`data/OneSW-Form-0023-TC_DIADesigner Function Check List (1).xlsx`，D 欄「功能關鍵字 - Tag（RD 維護）」。維護時以此欄位為唯一來源，不得自行新增 Tag。
 
 ---
 
 ## Section 2 — 可調整參數
 
 > 所有判斷閾值與映射規則的**唯一來源**為：
-> `.claude/assets/iabgvoc-definitions.json`
+> `iabgvoc-definitions.json`（專案根目錄）
 >
 > 若需調整閾值、新增版本號、或修改特別關注 Tag，請直接修改該 JSON 檔的對應欄位，下次執行腳本自動生效，無需修改 Python 程式碼：
 >
@@ -71,8 +71,8 @@ version: 2.0.0
 
 | 檔案 | 路徑 | 欄位數 |
 |------|------|--------|
-| Issue CSV | `.claude/assets/Function Requirement csv/IABGVOC Issue.csv` | 18 欄（含 Priority，Requirement 無此欄）|
-| Requirement CSV | `.claude/assets/Function Requirement csv/IABGVOC Requirement.csv` | 17 欄 |
+| Issue CSV | `data/IABGVOC Issue.csv` | 18 欄（含 Priority，Requirement 無此欄）|
+| Requirement CSV | `data/IABGVOC Requirement.csv` | 17 欄 |
 
 **欄位定義**（兩份 CSV 共用欄位說明）：
 
@@ -195,7 +195,7 @@ version: 2.0.0
 
 ## Section 5 — 版本映射規則
 
-版本映射規則定義於 `.claude/assets/iabgvoc-definitions.json` 的 `version_mapping` 欄位，結構說明：
+版本映射規則定義於 `iabgvoc-definitions.json`（專案根目錄）的 `version_mapping` 欄位，結構說明：
 
 - `exact`：精確字串對應（如 `"Requirement Analysis Phase"` → `"Need More Information"`）
 - `contains`：有序子字串比對陣列（如含 `"SP1"` → `"DIADesigner SP1"`）；比對順序即優先順序
@@ -286,7 +286,7 @@ version: 2.0.0
 - **輸出路徑**：`{working_directory}/output/analysis_raw.md`（由 `Write` 工具寫入）
 - 報告產出後，告知使用者檔案已儲存
 
-**各表格欄位定義**：各表格的欄位名稱定義於 `.claude/assets/iabgvoc-definitions.json` 的 `table_headers` 欄位（`item`、`item_with_region`、`special_item`、`tag_module`、`region`、`trend`）。腳本啟動時讀取後賦值給 `HDR_*` 常數，輸出行格式由這些常數驅動。
+**各表格欄位定義**：各表格的欄位名稱定義於 `iabgvoc-definitions.json`（專案根目錄）的 `table_headers` 欄位（`item`、`item_with_region`、`special_item`、`tag_module`、`region`、`trend`）。腳本啟動時讀取後賦值給 `HDR_*` 常數，輸出行格式由這些常數驅動。
 
 ---
 
@@ -312,7 +312,7 @@ version: 2.0.0
 |----------|---------------|---------|
 | 開放 Issue 數 | `State 不在 {Closed, Review & Approval}` | 附錄 D「開放 Issue 數」 |
 | 開放 Req 數 | `State 不在 {Closed, Review & Approval}` | 附錄 D「開放 Req 數」 |
-| 高風險 Req | `FMEA ≥ 500 AND State 不在 {Closed, Review & Approval}` | 報告 3.3 FMEA 分層高風險計數 |
+| 高風險 Req | `FMEA ≥ 500 AND State 不在 {Closed, Review & Approval}` | 報告 §2.3 FMEA 分層高風險計數 |
 | 特定 ID open_days | 手動計算 `Creation Date 至 TODAY` | 報告清單中的「開放天數」欄 |
 
 ### 8.3 `is_open` 定義（唯一合法定義）
@@ -321,7 +321,7 @@ version: 2.0.0
 is_open = State ∉ {"Closed", "Review & Approval"}
 ```
 
-凡報告中涉及開放/老化判斷及表格欄位名稱，均以 `.claude/assets/iabgvoc-definitions.json` 為準：
+凡報告中涉及開放/老化判斷及表格欄位名稱，均以 `iabgvoc-definitions.json`（專案根目錄）為準：
 - 開放/老化行標籤：`labels.open_definition`、`labels.aging_definition`
 - 嚴重性分布欄位：`table_headers.severity_dist`
 - 排除的 State 值：`closed_states` 陣列

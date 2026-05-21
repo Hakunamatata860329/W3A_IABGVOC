@@ -1,6 +1,6 @@
 # IABGVOC 分析系統 — 程式架構文件
 
-> 本文件描述 `analyze_iabgvoc.py` 的架構、資料流、設定系統與報告結構，  
+> 本文件描述分析系統的架構、資料流、設定系統與報告結構，  
 > 作為後續需求討論的共同基礎。
 
 ---
@@ -9,8 +9,10 @@
 
 ```
 d:\W3A_IABGVOC\
-├── analyze_iabgvoc.py          # 主分析腳本（唯一執行入口）
+├── analyze_iabgvoc.py          # 主分析腳本 → 產生 output/analysis_raw.md
+├── export_json.py              # Dashboard 腳本 → 產生 output/dashboard.html
 ├── iabgvoc-definitions.json    # 設定檔（唯一規則來源）
+├── logo.png                    # Dashboard 標頭 Logo
 ├── ARCHITECTURE.md             # 本文件
 ├── CLAUDE.md                   # Claude Code 行為指南
 ├── .gitignore
@@ -21,12 +23,17 @@ d:\W3A_IABGVOC\
 │   └── OneSW-Form-0023-TC_DIADesigner Function Check List (1).xlsx
 │
 ├── output\                     # 腳本自動寫入，不納入版控
-│   └── analysis_raw.md         # 報告輸出
+│   ├── analysis_raw.md         # 主報告（Markdown）
+│   └── dashboard.html          # 互動式圖表 Dashboard（含內嵌 JS/CSS）
 │
 └── .claude\
     └── skills\
-        └── iabgvoc-analysis\
-            └── SKILL.md        # Claude Skill 執行 SOP
+        ├── iabgvoc-analysis\
+        │   └── SKILL.md        # Claude Skill 執行 SOP（主報告）
+        ├── frontend-design\
+        │   └── SKILL.md        # Claude Skill（前端設計）
+        └── pptx-author\
+            └── SKILL.md        # Claude Skill（PowerPoint 產生）
 ```
 
 ---
@@ -42,15 +49,13 @@ data/IABGVOC Requirement.csv          ──┐
 data/...Function Check List.xlsx      ──┤
 iabgvoc-definitions.json              ──┤
                                         │
-                                        ▼
-                            analyze_iabgvoc.py
-                                        │
-                         ┌──────────────┼──────────────┐
-                         ▼              ▼               ▼
-                    計算區段 1–6    建議事項        附錄 A–D
-                                        │
-                                        ▼
-                            output/analysis_raw.md
+                         ┌──────────────┴──────────────┐
+                         ▼                             ▼
+                analyze_iabgvoc.py             export_json.py
+                         │                             │
+                         ▼                             ▼
+             output/analysis_raw.md        output/dashboard.html
+             （Markdown 主報告）             （互動式 HTML Dashboard）
 ```
 
 ---
@@ -81,15 +86,15 @@ iabgvoc-definitions.json              ──┤
 
 ---
 
-## 4. 腳本架構（analyze_iabgvoc.py）
+## 4. 腳本架構
 
-### 4.1 啟動階段（全域）
+### 4.1 analyze_iabgvoc.py — 啟動階段（全域）
 
 | 常數 | 來源 | 說明 |
 |------|------|------|
 | `_ROOT` | `os.path` | 腳本所在目錄，所有路徑基準 |
 | `ISSUE_PATH` / `REQ_PATH` / `XLSX_PATH` | `_ROOT + data/` | 輸入資料路徑 |
-| `DEFS_PATH` | `_ROOT` | definitions JSON 路徑 |
+| `DEFS_PATH` | `_ROOT` | definitions JSON 路徑（專案根目錄） |
 | `CLOSED_STATES` | JSON `closed_states` | frozenset，用於 `is_open()` |
 | `SEV_ORDER` | JSON `severity_order` | 嚴重性排序 |
 | `SPECIAL_TAGS` | JSON `special_tags` | 特別關注 Tag |
@@ -102,7 +107,7 @@ iabgvoc-definitions.json              ──┤
 | `VERSION_CATEGORIES` | JSON `version_mapping.display_order` | 版本顯示順序 |
 | `VALID_TAGS` | Excel D 欄 | 合法 Tag 集合（小寫） |
 
-### 4.2 工具函式
+### 4.2 工具函式（analyze_iabgvoc.py）
 
 | 函式 | 說明 |
 |------|------|
@@ -116,7 +121,7 @@ iabgvoc-definitions.json              ──┤
 | `fmea(row)` | 解析 `FMEA Total` 欄，解析失敗回傳 0 |
 | `open_days(row)` | `TODAY - Creation Date`，解析失敗回傳 0 |
 
-### 4.3 計算區段
+### 4.3 計算區段（analyze_iabgvoc.py）
 
 腳本按以下 6 大區段依序計算，結果存入 Python 變數供輸出使用：
 
@@ -130,15 +135,35 @@ iabgvoc-definitions.json              ──┤
 | **區段 5** 特別關注 | §五 | `special_issues`, `special_reqs` |
 | **區段 6** 歷年趨勢 | §六 | `year_issue`, `year_req` |
 
-### 4.4 輸出階段
+### 4.4 輸出階段（analyze_iabgvoc.py）
 
 計算完成後，以 `out: list[str]` 組裝 Markdown，依序輸出：
 執行摘要 → Methodology → §一～六 → 建議事項 → 附錄 A/B/C → 附錄 D（稽核）  
 最後寫入 `output/analysis_raw.md`。
 
+### 4.5 export_json.py — Dashboard 腳本
+
+讀取相同的 CSV/JSON/XLSX 來源，計算 KPI 指標與圖表資料，輸出自含式 HTML Dashboard：
+
+| 輸出資料 | 說明 |
+|----------|------|
+| `kpi` | 開放 Issue/Req 數、CB Opened 數、FMEA 高風險數（Issue + Req 各自）|
+| `trend` | 歷年 Issue/Req 新增 vs 關閉 |
+| `severity` | 各嚴重性開放數（Issue / Req 分開）|
+| `region` | 各 Region 的 Issue CB Opened / Issue Open / Req Open |
+| `tags` | Top 10 C/B Opened 功能模組（Tag）|
+| `version` | 各版本開放 Issue 數 |
+| `fmea_tier` | Req 的 FMEA 高/中/低風險分層 |
+| `state` / `req_state` | Issue / Req State 分布 |
+
+**HTML 架構**：所有計算資料以 `DATA_JSON` 嵌入 `<script>` 內，Chart.js 4.4（CDN）繪製，  
+無外部依賴，開啟 `output/dashboard.html` 即可檢視，不需伺服器。
+
 ---
 
-## 5. 報告結構（output/analysis_raw.md）
+## 5. 報告結構
+
+### 5.1 output/analysis_raw.md（Markdown 主報告）
 
 | 章節 | 標題 | 主要受眾 |
 |------|------|---------|
@@ -165,6 +190,15 @@ iabgvoc-definitions.json              ──┤
 | 附錄 B | 老化 Issue 完整清單 | RD / TE |
 | 附錄 C | 特別關注項目完整清單 | — |
 | 附錄 D | 稽核資料（自動驗證） | — |
+
+### 5.2 output/dashboard.html（互動式 Dashboard）
+
+單頁應用，包含以下視覺元件：
+- 6 個 KPI 卡片（Issue / Req 開放率、C/B 比例、FMEA 高風險率）
+- 雙環圓餅圖（外環 Issue State / 內環 Req State）
+- 橫條圖（各 Region 開放數）
+- 折線圖（歷年 Issue / Req 新增 vs 關閉趨勢，hover 顯示年度統計）
+- 側邊欄篩選器（年份 / State / Region，目前為 UI 展示用）
 
 ---
 
@@ -195,10 +229,15 @@ iabgvoc-definitions.json              ──┤
 
 ```powershell
 cd D:\W3A_IABGVOC
+
+# 產生 Markdown 主報告
 python analyze_iabgvoc.py
+
+# 產生互動式 HTML Dashboard
+python export_json.py
 ```
 
-成功輸出範例：
+`analyze_iabgvoc.py` 成功輸出範例：
 ```
 Loaded: 269 issues, 165 requirements
 
@@ -207,3 +246,9 @@ Audit: Issues=269, Reqs=165, Open Issues=39, Open Reqs=88, Consistency=OK
 ```
 
 `Consistency=OK` 表示開放數自檢通過；若為 `FAIL` 需檢查 CSV 資料或 `closed_states` 設定。
+
+`export_json.py` 成功輸出範例：
+```
+Loaded: 269 issues, 165 requirements
+Dashboard generated: output/dashboard.html
+```

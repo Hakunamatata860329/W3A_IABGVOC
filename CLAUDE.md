@@ -65,9 +65,31 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
 
 ---
 
+## 專案背景
+
+**產品**：DIADesigner / W3A — Delta Electronics IASBU 的 PLC IDE，支援 ST/LD 程式語言、EtherCAT、運動控制。
+
+**使用者**：林峻宇（jason.jy.lin），PM/RD 主管，負責 JIRA issue 追蹤與主管級風險報告。報告受眾為 Director / PM / RD Leader / TE Leader。
+
+Claude 在此專案的定位是**資深 PMO + RD 主管助理**——不只產生統計數字，而是要綜合風險判斷並提出可行的管理建議，適合 Director 層級直接閱覽。
+
+**資料檔案路徑**（腳本讀取位置）：
+- `data/IABGVOC Issue.csv`
+- `data/IABGVOC Requirement.csv`
+- `data/OneSW-Form-0023-TC_DIADesigner Function Check List (1).xlsx`（合法 Tag 清單，D 欄）
+- `iabgvoc-definitions.json`（專案根目錄，唯一規則來源）
+
+**主要腳本**：
+- `analyze_iabgvoc.py` → 產生 `output/analysis_raw.md`（Markdown 主報告）
+- `export_json.py` → 產生 `output/dashboard.html`（互動式 HTML Dashboard）
+
+**Skill**：`/iabgvoc-analysis`（`.claude/skills/iabgvoc-analysis/SKILL.md`）
+
+---
+
 ## 專案架構：檔案同步規則
 
-此專案的報告由 `analyze_iabgvoc.py` 產生，設定集中在 `iabgvoc-definitions.json`，報告模板定義在 `SKILL.md`。**三者必須保持一致**；修改任一處前，先確認下表其他欄位是否需要連動。
+`analyze_iabgvoc.py`、`export_json.py`、`iabgvoc-definitions.json`、`SKILL.md` 四者必須保持一致；修改任一處前，先確認下表其他欄位是否需要連動。
 
 | 改動類型 | 需同步的檔案 |
 |---|---|
@@ -77,5 +99,6 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
 | 閾值（FMEA 分層、Backlog 天數、Top-N）| `iabgvoc-definitions.json` 即可，腳本啟動時自動讀取 |
 | 版本映射規則 | `iabgvoc-definitions.json` 即可 |
 | Special tag 新增/移除 | `iabgvoc-definitions.json`（special_tags）、`SKILL.md` |
+| dashboard.html 需求（新增欄位/圖表/KPI）| `export_json.py`（資料計算）必須主動檢查是否需要同步修改 |
 
-**執行驗證**：改完後必須執行 `python3 analyze_iabgvoc.py`，確認無錯誤且 Audit 行顯示 `Consistency=OK`。
+**執行驗證**：改完後必須執行 `python analyze_iabgvoc.py`，確認無錯誤且 Audit 行顯示 `Consistency=OK`。
