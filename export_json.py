@@ -518,31 +518,38 @@ document.getElementById('d6-thr').textContent = DATA.kpi.fmea_threshold;
 drawKpi('d6-arc','d6-pct','d6-val', DATA.kpi.fmea_high_open_reqs, DATA.meta.total_reqs);
 
 // State donut charts (Issue + Req split)
-const C1 = ['#26C6DA','#6B21D9','#CE93D8','#9B59D4','#00BCD4','#9E9E9E'];
-const C2 = ['#FDD835','#FF7043','#42A5F5','#AB47BC','#66BB6A','#EC407A'];
+const STATE_COLORS = {
+  'Closed':              '#388E3C',
+  'Review & Approval':   '#81C784',
+  'In Progress':         '#1976D2',
+  'Verification':        '#F9A825',
+  'Review':              '#C62828',
+};
+const STATE_COLOR_DEFAULT = '#9E9E9E';
+function stateColor(lbl) { return STATE_COLORS[lbl] || STATE_COLOR_DEFAULT; }
 
-function buildStateList(containerId, labels, counts, colors) {
+function buildStateList(containerId, labels, counts) {
   const el = document.getElementById(containerId);
   const total = counts.reduce((a, b) => a + b, 0);
   labels.forEach((lbl, i) => {
     const pct = total > 0 ? Math.round(counts[i] / total * 100) : 0;
     const div = document.createElement('div');
     div.className = 'state-item';
-    div.innerHTML = '<span class="si-dot" style="background:' + colors[i] + '"></span>'
+    div.innerHTML = '<span class="si-dot" style="background:' + stateColor(lbl) + '"></span>'
       + '<span class="si-lbl">' + lbl + '</span>'
       + '<span class="si-val">' + counts[i].toLocaleString() + '</span>'
       + '<span class="si-pct">(' + pct + '%)</span>';
     el.appendChild(div);
   });
 }
-buildStateList('issue-state-list', DATA.state.labels, DATA.state.counts, C1);
-buildStateList('req-state-list', DATA.req_state.labels, DATA.req_state.counts, C2);
+buildStateList('issue-state-list', DATA.state.labels, DATA.state.counts);
+buildStateList('req-state-list', DATA.req_state.labels, DATA.req_state.counts);
 
 new Chart(document.getElementById('issueDonutChart'), {
   type: 'doughnut',
   data: {
     labels: DATA.state.labels,
-    datasets: [{ data: DATA.state.counts, backgroundColor: C1, borderWidth: 2, borderColor: '#fff' }]
+    datasets: [{ data: DATA.state.counts, backgroundColor: DATA.state.labels.map(stateColor), borderWidth: 2, borderColor: '#fff' }]
   },
   options: {
     responsive: true, maintainAspectRatio: false, cutout: '60%',
@@ -557,7 +564,7 @@ new Chart(document.getElementById('reqDonutChart'), {
   type: 'doughnut',
   data: {
     labels: DATA.req_state.labels,
-    datasets: [{ data: DATA.req_state.counts, backgroundColor: C2, borderWidth: 2, borderColor: '#fff' }]
+    datasets: [{ data: DATA.req_state.counts, backgroundColor: DATA.req_state.labels.map(stateColor), borderWidth: 2, borderColor: '#fff' }]
   },
   options: {
     responsive: true, maintainAspectRatio: false, cutout: '60%',

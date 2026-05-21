@@ -214,6 +214,20 @@ fmea_low  = [r for r in req_open if fmea(r) < FMEA_MID_LOWER]
 # Unassigned ratio
 req_unassigned = sum(1 for r in reqs if r.get('Owner','').strip() in ('', 'Unassigned') and is_open(r))
 
+# Requirement version breakdown (same categorize_version logic as Issues)
+req_planned_counts = defaultdict(lambda: {'total': 0, 'closed': 0})
+for r in reqs:
+    pf = r.get('Planned For', 'Unassigned').strip() or 'Unassigned'
+    req_planned_counts[pf]['total'] += 1
+    if not is_open(r):
+        req_planned_counts[pf]['closed'] += 1
+
+req_cat_counts = defaultdict(lambda: {'total': 0, 'closed': 0})
+for pf, d in req_planned_counts.items():
+    cat = categorize_version(pf)
+    req_cat_counts[cat]['total'] += d['total']
+    req_cat_counts[cat]['closed'] += d['closed']
+
 req_sev_counts = defaultdict(lambda: {'total': 0, 'open': 0})
 for r in reqs:
     sv = r.get('Severity', 'Unknown').strip()
@@ -419,13 +433,23 @@ for st, cnt in sorted(req_state_counts.items(), key=lambda x: -x[1]):
     out.append(f"| {st} | {cnt} |")
 out.append("")
 
-out.append("### 2.3 FMEA 風險分層（未關閉）\n")
+out.append("### 2.3 版本計畫完成率（分類規則）\n")
+out.append("| 版本分類 | 總數 | 已關閉 | 完成率 |")
+out.append("|----------|------|--------|--------|")
+for cat in VERSION_CATEGORIES:
+    if cat in req_cat_counts:
+        d = req_cat_counts[cat]
+        pct = round(d['closed']/d['total']*100, 1) if d['total'] else 0
+        out.append(f"| {cat} | {d['total']} | {d['closed']} | {pct}% |")
+out.append("")
+
+out.append("### 2.4 FMEA 風險分層（未關閉）\n")
 out.append(f"- 高風險（FMEA ≥ 500）：**{len(fmea_high)}** 筆")
 out.append(f"- 中風險（201–499）：**{len(fmea_mid)}** 筆")
 out.append(f"- 低風險（0–200）：**{len(fmea_low)}** 筆")
 out.append(f"- 待辦未指派（Unassigned）：**{req_unassigned}** 筆\n")
 
-out.append(f"### 2.4 FMEA Top 20 未關閉 Requirement（PM 優先關注）\n")
+out.append(f"### 2.5 FMEA Top 20 未關閉 Requirement（PM 優先關注）\n")
 out.append(HDR_ITEM)
 out.append(make_sep(HDR_ITEM))
 for r in req_top20:

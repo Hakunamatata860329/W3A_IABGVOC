@@ -1,11 +1,11 @@
 # IABGVOC Issue & Requirement 分析報告
 
-> 資料截止日：2026-05-21　Issue 總數：269　Requirement 總數：165
+> 資料截止日：2026-05-21　Issue 總數：268　Requirement 總數：166
 
 ## 執行摘要（Executive Summary）
 
-- **開放 Issue 數**：39 / 269（其中 Critical/Blocker：12 筆）
-- **開放 Requirement 數**：88 / 165（整體完成率：46.7%）
+- **開放 Issue 數**：38 / 268（其中 Critical/Blocker：12 筆）
+- **開放 Requirement 數**：89 / 166（整體完成率：46.4%）
 - **最高風險 Requirement**：[579898] [JIRA] (新增裝置) [IABGVOC-2035] SGM 標準化專案開發需求 : 軟體專案樹架構調整… (FMEA=1000)
 - **最熱點功能模組（Tag）**：`oscilloscope`（Issue+Req 合計 53 筆）
 - **老化 Issue（>180天未關閉）**：15 筆
@@ -14,7 +14,7 @@
 
 | 項目 | 說明 |
 |------|------|
-| 資料來源 | IABGVOC Issue.csv（269 筆）、IABGVOC Requirement.csv（165 筆）|
+| 資料來源 | IABGVOC Issue.csv（268 筆）、IABGVOC Requirement.csv（166 筆）|
 | 時間範圍 | 2021 ~ 2026/05（全部資料）|
 | 分析基準日 | 2026-05-21 |
 | 開放定義 | State ∉ {Closed, Review & Approval} |
@@ -30,18 +30,18 @@
 |--------|------|--------|--------|
 | Blocker | 33 | 1 | 3.0% |
 | Critical | 100 | 11 | 11.0% |
-| Major | 94 | 23 | 24.5% |
+| Major | 93 | 22 | 23.7% |
 | Minor | 42 | 4 | 9.5% |
 
 ### 1.2 狀態分布
 
 | 狀態 | 數量 |
 |------|------|
-| Closed | 221 |
-| Review | 24 |
-| Review & Approval | 9 |
+| Closed | 227 |
+| Review | 23 |
 | In Progress | 8 |
 | Verification | 7 |
+| Review & Approval | 3 |
 
 ### 1.3 版本計畫完成率（分類規則）
 
@@ -57,7 +57,7 @@
 | DIADesigner 1.14.0 | 32 | 11 | 34.4% |
 | DIADesigner 1.15.0 | 6 | 0 | 0.0% |
 | Need Triage | 54 | 50 | 92.6% |
-| Need More Information | 4 | 0 | 0.0% |
+| Need More Information | 3 | 0 | 0.0% |
 | Backlog | 1 | 0 | 0.0% |
 
 ### 1.4 Critical / Blocker 未關閉項目（共 12 筆，依 FMEA 排序）
@@ -69,7 +69,7 @@
 | 578889 | Critical | 600 | Review | Unassigned | 23 | [JIRA] (硬體配置) [IABGVOC-1955] 重新安裝 COMMGR 後，每次在专案按了连线就会跳 |
 | 574365 | Critical | 600 | Verification | UNI.CHEN 陳軍宇 | 51 | [JIRA] (程式編輯) [IABGVOC-1829] ST Pou 在線監控程序時出現 "未知序列錯誤" |
 | 572378 | Critical | 600 | In Progress | MIAO.CHEN 陳炫妙 | 58 | [JIRA] (程式編輯) [IABGVOC-1768] 变量表初值设定错误后无法编辑 |
-| 572377 | Critical | 600 | In Progress | MIAO.CHEN 陳炫妙 | 58 | [JIRA] (程式編輯) [IABGVOC-1769] ARRAY[*] OF ARRAY[*] OF 2維 |
+| 572377 | Critical | 600 | In Progress | KF.LIU 劉桂輔 | 58 | [JIRA] (程式編輯) [IABGVOC-1769] ARRAY[*] OF ARRAY[*] OF 2維 |
 | 563431 | Critical | 600 | Review | Unassigned | 113 | [JIRA] (調適) [IABGVOC-1532] 示波器保存的波形重新打开后发现显示的波形和我们点击的不符 |
 | 562353 | Critical | 600 | Review | Unassigned | 118 | [JIRA] (調適) [IABGVOC-1506] 示波器由A专案保存，开启B专案后打开示波器后部分变量无法 |
 | 538366 | Critical | 600 | Review | UNI.CHEN 陳軍宇 | 260 | [JIRA] (程式編輯) [IABGVOC-2032] Ladder Expression 輸出接點狀態顯示 |
@@ -97,7 +97,7 @@
 | 528531 | Major | 240 | In Progress | LUCIAN.LS.OUYANG 歐陽龍祥 | 307 | [JIRA] (程式編輯) [IABGVOC-1058] 功能块实例必须自己手敲，才会确认，不智能，应该可以自 |
 | 538366 | Critical | 600 | Review | UNI.CHEN 陳軍宇 | 260 | [JIRA] (程式編輯) [IABGVOC-2032] Ladder Expression 輸出接點狀態顯示 |
 
-### 1.6 高嚴重性 Unassigned Issue（共 9 筆）
+### 1.6 高嚴重性 Unassigned Issue（共 8 筆）
 
 | ID | 嚴重性 | FMEA | State | Owner | 開放天數 | 摘要 |
 |---|---|----|-----|-----|----|---|
@@ -107,7 +107,6 @@
 | 578046 | Major | 400 | Review | Unassigned | 27 | [JIRA] (調適) [IABGVOC-1897] 功能块IN_OUT_PUT引脚状态无法展开监控 |
 | 574859 | Major | 400 | Review | Unassigned | 49 | [JIRA] (程式編輯) [IABGVOC-1839] 更新DIADesigner 1.13.0.66_Tr |
 | 571907 | Major | 400 | Review | Unassigned | 62 | [JIRA] (專案管理) [IABGVOC-1750] DIA Designer多次開啟project後，每 |
-| 579005 | Major | 240 | Review | Unassigned | 22 | [JIRA] (程式編輯) [IABGVOC-1994] EXCEL导入MC_xxx FB的变量，但是在 LD |
 | 579002 | Major | 240 | Review | Unassigned | 22 | [JIRA] (專案編譯) [IABGVOC-1993] 下载时还会重新编译一次(实体机、模拟器需要智能判断) |
 | 578888 | Critical | 240 | Review | Unassigned | 23 | [JIRA] (網路配置) [IABGVOC-1958] EtherCAT 插入設備時彈出例外視窗 |
 
@@ -119,27 +118,43 @@
 |--------|------|--------|--------|
 | Blocker | 19 | 8 | 42.1% |
 | Critical | 28 | 9 | 32.1% |
-| Major | 77 | 52 | 67.5% |
+| Major | 78 | 53 | 67.9% |
 | Minor | 41 | 19 | 46.3% |
 
 ### 2.2 狀態分布
 
 | 狀態 | 數量 |
 |------|------|
-| Review | 78 |
-| Closed | 70 |
-| Review & Approval | 7 |
-| In Progress | 5 |
-| Verification | 5 |
+| Review | 79 |
+| Closed | 76 |
+| Verification | 6 |
+| In Progress | 4 |
+| Review & Approval | 1 |
 
-### 2.3 FMEA 風險分層（未關閉）
+### 2.3 版本計畫完成率（分類規則）
+
+| 版本分類 | 總數 | 已關閉 | 完成率 |
+|----------|------|--------|--------|
+| DIADesigner SP4 | 3 | 3 | 100.0% |
+| DIADesigner 1.10.0 | 3 | 3 | 100.0% |
+| DIADesigner 1.11.0 | 13 | 13 | 100.0% |
+| DIADesigner 1.12.0 | 31 | 30 | 96.8% |
+| DIADesigner 1.13.0 | 13 | 13 | 100.0% |
+| DIADesigner 1.14.0 | 41 | 9 | 22.0% |
+| DIADesigner 1.15.0 | 22 | 0 | 0.0% |
+| Need Triage | 14 | 6 | 42.9% |
+| Need More Information | 3 | 0 | 0.0% |
+| Backlog | 14 | 0 | 0.0% |
+| Not Support | 1 | 0 | 0.0% |
+
+### 2.4 FMEA 風險分層（未關閉）
 
 - 高風險（FMEA ≥ 500）：**12** 筆
-- 中風險（201–499）：**41** 筆
+- 中風險（201–499）：**42** 筆
 - 低風險（0–200）：**35** 筆
-- 待辦未指派（Unassigned）：**31** 筆
+- 待辦未指派（Unassigned）：**32** 筆
 
-### 2.4 FMEA Top 20 未關閉 Requirement（PM 優先關注）
+### 2.5 FMEA Top 20 未關閉 Requirement（PM 優先關注）
 
 | ID | 嚴重性 | FMEA | State | Owner | 開放天數 | 摘要 |
 |---|---|----|-----|-----|----|---|
@@ -170,7 +185,7 @@
 |------|--------|--------|-----------------------|------|------|
 | IA Internal-SC | 157 | 17 | 7 | 123 | 64 |
 | IA Internal-CoreTech | 75 | 8 | 1 | 15 | 5 |
-| DGC-China | 20 | 10 | 3 | 23 | 16 |
+| DGC-China | 19 | 9 | 3 | 24 | 17 |
 | IA Internal-IMSBU | 17 | 4 | 1 | 4 | 3 |
 
 ## 四、功能模組熱點分析（功能檢點 Tag）
@@ -179,14 +194,14 @@
 |---------|--------|--------|------|------|-----------------------|
 | `oscilloscope` | 37 | 3 | 16 | 7 | 2 |
 | `motion_axisset` | 20 | 0 | 22 | 11 | 0 |
-| `programming_glovar` | 21 | 4 | 16 | 7 | 2 |
-| `programming_monitable` | 16 | 3 | 13 | 8 | 1 |
+| `programming_glovar` | 20 | 3 | 16 | 8 | 2 |
+| `programming_monitable` | 17 | 3 | 13 | 8 | 1 |
 | `programming_lang_st_edit` | 15 | 5 | 12 | 8 | 0 |
 | `devnetwork_ethercat` | 17 | 1 | 9 | 3 | 1 |
 | `programming_lang_st_monitor` | 13 | 2 | 7 | 7 | 1 |
 | `downloaduploadmgr` | 15 | 2 | 3 | 0 | 0 |
-| `programming_lang_ld_edit` | 5 | 3 | 9 | 7 | 0 |
-| `programming_compile` | 12 | 2 | 1 | 1 | 1 |
+| `programming_compile` | 13 | 2 | 1 | 1 | 1 |
+| `programming_lang_ld_edit` | 4 | 2 | 10 | 8 | 0 |
 | `programming_lang_ld_monitor` | 10 | 3 | 3 | 2 | 1 |
 | `programming_lang` | 8 | 0 | 1 | 1 | 0 |
 | `programming_lang_ld` | 8 | 2 | 0 | 0 | 1 |
@@ -206,8 +221,8 @@
 |-----|------------:|----------:|---------:|
 | step_control | 10 | 15 | 25 |
 | 手順 | 0 | 4 | 4 |
-| dgc_fae | 5 | 12 | 17 |
-| **合計** | **15** | **31** | **46** |
+| dgc_fae | 4 | 13 | 17 |
+| **合計** | **14** | **32** | **46** |
 
 ### 5.1 step_control（Issue + Requirement，依 FMEA 排序）
 
@@ -219,7 +234,7 @@
 | 579102 | Issue | Critical | 600 | Verification | KAKA.WU 吳思言 | [JIRA] (程式編輯) [IABGVOC-2013] 及時刷新 LOG 狀態下關閉頁籤，在线仿真發生例外 |
 | 574365 | Issue | Critical | 600 | Verification | UNI.CHEN 陳軍宇 | [JIRA] (程式編輯) [IABGVOC-1829] ST Pou 在線監控程序時出現 "未知序列錯誤" |
 | 572378 | Issue | Critical | 600 | In Progress | MIAO.CHEN 陳炫妙 | [JIRA] (程式編輯) [IABGVOC-1768] 变量表初值设定错误后无法编辑 |
-| 572377 | Issue | Critical | 600 | In Progress | MIAO.CHEN 陳炫妙 | [JIRA] (程式編輯) [IABGVOC-1769] ARRAY[*] OF ARRAY[*] OF 2維 |
+| 572377 | Issue | Critical | 600 | In Progress | KF.LIU 劉桂輔 | [JIRA] (程式編輯) [IABGVOC-1769] ARRAY[*] OF ARRAY[*] OF 2維 |
 | 538366 | Issue | Critical | 600 | Review | UNI.CHEN 陳軍宇 | [JIRA] (程式編輯) [IABGVOC-2032] Ladder Expression 輸出接點狀態顯示 |
 | 229108 | Req | Critical | 600 | Review | STEWARD.LU 呂名峰 | [JIRA] (調適) [IABGVOC-1873] REF_TO变量监控无法展开 |
 | 527019 | Req | Critical | 600 | In Progress | JEAN.LC.WANG 王儷臻 | [JIRA] (模組編輯) [IABGVOC-1012] R1扩展模组映射变量无法关联Byte/Word等数据 |
@@ -227,12 +242,12 @@
 | 579103 | Issue | Major | 400 | Review | ELVIS.CT.CHANG 張錦宗 | [JIRA] (程式編輯) [IABGVOC-2014] LD中输出节点状态显示异常 |
 | 578046 | Issue | Major | 400 | Review | Unassigned | [JIRA] (調適) [IABGVOC-1897] 功能块IN_OUT_PUT引脚状态无法展开监控 |
 | 572461 | Issue | Major | 400 | Review | HARVEY.XIE 謝孟軒 | [JIRA] (程式編輯) [IABGVOC-1776] 程序区变量选中需要提示此变量的详细信息 |
-| 572382 | Issue | Major | 400 | In Progress | MIAO.CHEN 陳炫妙 | [JIRA] (程式編輯) [IABGVOC-1771] 結構體初始值設定後報錯: "String数据类型无法 |
+| 572382 | Issue | Major | 400 | In Progress | KF.LIU 劉桂輔 | [JIRA] (程式編輯) [IABGVOC-1771] 結構體初始值設定後報錯: "String数据类型无法 |
 | 466614 | Issue | Major | 400 | In Progress | STEWARD.LU 呂名峰 | [JIRA] (程式編輯) [IABGVOC-2017] In the Ladder program unit |
 | 574370 | Req | Major | 400 | Review | HARVEY.XIE 謝孟軒 | [JIRA] (程式編輯) [IABGVOC-1830] ST Show Hint 希望能分段解析變數 |
 | 522465 | Req | Blocker | 400 | Review | STEWARD.LU 呂名峰 | [JIRA] (程式編輯) [IABGVOC-976] 监控表中部分变量无法监控，无法修改变量值 |
-| 561761 | Req | Major | 400 | In Progress | ORLANDO.LAN 藍順騰 | [JIRA] (程式編輯) [IABGVOC-1487] 数组范围可以设定便属性为常量的变量ARRAY [0. |
 | 568982 | Req | Major | 400 | Verification | ORLANDO.LAN 藍順騰 | [JIRA] (程式編輯) [IABGVOC-1666] 支援不定长数组功能如ARRAY[*,*] OF 類型 |
+| 561761 | Req | Major | 400 | Verification | ORLANDO.LAN 藍順騰 | [JIRA] (程式編輯) [IABGVOC-1487] 数组范围可以设定便属性为常量的变量ARRAY [0. |
 | 579090 | Req | Major | 240 | Review | HARVEY.XIE 謝孟軒 | [JIRA] (程式編輯) [IABGVOC-1984] 枚舉類型的變數 Show Hint 能顯示出成員名稱 |
 | 575986 | Req | Major | 240 | Review | MIAO.CHEN 陳炫妙 | [JIRA] (程式編輯) [IABGVOC-1877] STRING 變量初始值設定頁面預設值需填上 '' |
 | 579544 | Req | Major | 160 | Review | ELVIS.CT.CHANG 張錦宗 | [JIRA] (程式編輯) [IABGVOC-2025] LD 顯示的變量長度希望可自動調整 |
@@ -254,14 +269,13 @@
 
 ### 5.3 dgc_fae（Issue + Requirement，依 FMEA 排序）
 
-**Issue**：開放 5 筆　**Requirement**：開放 12 筆
+**Issue**：開放 4 筆　**Requirement**：開放 13 筆
 
 | ID | 類型 | 嚴重性 | FMEA | State | Owner | 摘要 |
 |---|---|---|----|-----|-----|---|
 | 578889 | Issue | Critical | 600 | Review | Unassigned | [JIRA] (硬體配置) [IABGVOC-1955] 重新安裝 COMMGR 後，每次在专案按了连线就会跳 |
 | 578942 | Req | Major | 400 | Review | ORLANDO.LAN 藍順騰 | [JIRA] (程式編輯) [IABGVOC-1952] 新增变数的型态可以考虑参考CODESYS :只要搜寻 |
 | 523235 | Req | Major | 400 | Review | HARVEY.XIE 謝孟軒 | [JIRA] (survey)(程式編輯) [IABGVOC-1954] ST Online模式下的監控行距調 |
-| 579005 | Issue | Major | 240 | Review | Unassigned | [JIRA] (程式編輯) [IABGVOC-1994] EXCEL导入MC_xxx FB的变量，但是在 LD |
 | 579002 | Issue | Major | 240 | Review | Unassigned | [JIRA] (專案編譯) [IABGVOC-1993] 下载时还会重新编译一次(实体机、模拟器需要智能判断) |
 | 578892 | Issue | Major | 240 | Review | HARVEY.XIE 謝孟軒 | [JIRA] (程式編輯) [IABGVOC-1964] 梯形图下Axis1的轴变量无法将其他类似位置等变量列 |
 | 578888 | Issue | Critical | 240 | Review | Unassigned | [JIRA] (網路配置) [IABGVOC-1958] EtherCAT 插入設備時彈出例外視窗 |
@@ -273,6 +287,7 @@
 | 579095 | Req | Major | 240 | Review | ELVIS.CT.CHANG 張錦宗 | [JIRA] (程式編輯) [IABGVOC-2004] LD插入功能块按鈕新增, 带EN,ENO, 不帶 E |
 | 579092 | Req | Major | 240 | Review | JACKY.TU 杜寧 | [JIRA] (運動控制) [IABGVOC-2005] 新增轴，不能直接输入中文，需要以字母为首 |
 | 579089 | Req | Major | 240 | Review | Unassigned | [JIRA] (程式編輯) [IABGVOC-2000] 離線模式下可展開陣列、結構體變數且得知位址資訊 |
+| 579005 | Req | Major | 240 | Review | Unassigned | [JIRA] (程式編輯) [IABGVOC-1994] MC 功能塊拖拉/新增時自動帶入已宣告變數 |
 | 578879 | Req | Major | 240 | Review | Unassigned | [JIRA] (專案管理) [IABGVOC-1961] 监控表不能放到屏幕下方，只能放在两侧，监控变量时不方 |
 | 578890 | Req | Minor | 120 | Review | JACKY.TU 杜寧 | [JIRA] (運動控制) [IABGVOC-1960] 运动参数设置，默認速度值與仿真測試初始值不符 |
 
@@ -285,17 +300,17 @@
 | 2023 | 31 | 2 | 6.5% | 3 | 0 | 0.0% |
 | 2024 | 39 | 31 | 79.5% | 12 | 0 | 0.0% |
 | 2025 | 159 | 150 | 94.3% | 85 | 43 | 50.6% |
-| 2026 | 40 | 47 | 117.5% | 63 | 34 | 54.0% |
+| 2026 | 39 | 47 | 120.5% | 64 | 34 | 53.1% |
 
 ## 建議事項（Recommendations）
 
 ### PM
 1. 優先推動 FMEA ≥ 500 的 12 筆高風險 Requirement 排入近期版本規劃，避免持續積壓。
-2. 對 Unassigned 的 31 筆開放 Requirement 進行責任指派，降低 Backlog 盲點。
+2. 對 Unassigned 的 32 筆開放 Requirement 進行責任指派，降低 Backlog 盲點。
 3. 針對 Top 20 FMEA Requirement，召集 RD/TE 評估可交付版本，並更新 Planned For 欄位。
 
 ### RD Leader
-1. 解決 9 筆高嚴重性 Unassigned Issue，明確指派負責人。
+1. 解決 8 筆高嚴重性 Unassigned Issue，明確指派負責人。
 2. 檢視 Owner 分布，避免少數人員過度集中，規劃工作分擔。
 3. 確認各版本（Planned For）的 Issue 完成率，對接近截止的版本提前介入。
 
@@ -320,7 +335,7 @@
 | 578889 | Critical | 600 | Review | Unassigned | 23 | DGC-China | [JIRA] (硬體配置) [IABGVOC-1955] 重新安裝 COMMGR 後，每次在专案按了连线就会跳 |
 | 574365 | Critical | 600 | Verification | UNI.CHEN 陳軍宇 | 51 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1829] ST Pou 在線監控程序時出現 "未知序列錯誤" |
 | 572378 | Critical | 600 | In Progress | MIAO.CHEN 陳炫妙 | 58 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1768] 变量表初值设定错误后无法编辑 |
-| 572377 | Critical | 600 | In Progress | MIAO.CHEN 陳炫妙 | 58 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1769] ARRAY[*] OF ARRAY[*] OF 2維 |
+| 572377 | Critical | 600 | In Progress | KF.LIU 劉桂輔 | 58 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1769] ARRAY[*] OF ARRAY[*] OF 2維 |
 | 563431 | Critical | 600 | Review | Unassigned | 113 | IA Internal-SC | [JIRA] (調適) [IABGVOC-1532] 示波器保存的波形重新打开后发现显示的波形和我们点击的不符 |
 | 562353 | Critical | 600 | Review | Unassigned | 118 | IA Internal-SC | [JIRA] (調適) [IABGVOC-1506] 示波器由A专案保存，开启B专案后打开示波器后部分变量无法 |
 | 538366 | Critical | 600 | Review | UNI.CHEN 陳軍宇 | 260 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-2032] Ladder Expression 輸出接點狀態顯示 |
@@ -361,18 +376,17 @@
 | 574365 | step_control | Critical | 600 | Verification | UNI.CHEN 陳軍宇 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1829] ST Pou 在線監控程序時出現 "未知序列錯誤" |
 | 572963 | step_control | Critical | 600 | Closed | HARVEY.XIE 謝孟軒 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1794] ST 解析特定語法下出現例外錯誤 : "序列未包含項 |
 | 572378 | step_control | Critical | 600 | In Progress | MIAO.CHEN 陳炫妙 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1768] 变量表初值设定错误后无法编辑 |
-| 572377 | step_control | Critical | 600 | In Progress | MIAO.CHEN 陳炫妙 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1769] ARRAY[*] OF ARRAY[*] OF 2維 |
+| 572377 | step_control | Critical | 600 | In Progress | KF.LIU 劉桂輔 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1769] ARRAY[*] OF ARRAY[*] OF 2維 |
 | 538366 | step_control | Critical | 600 | Review | UNI.CHEN 陳軍宇 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-2032] Ladder Expression 輸出接點狀態顯示 |
 | 527679 | step_control | Critical | 600 | Closed | ORLANDO.LAN 藍順騰 | IA Internal-SC | [JIRA] (模組編輯) [IABGVOC-1061] VAR RETAIN/RETAIN_M 問題反饋 ( |
 | 579103 | step_control | Major | 400 | Review | ELVIS.CT.CHANG 張錦宗 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-2014] LD中输出节点状态显示异常 |
 | 578046 | step_control | Major | 400 | Review | Unassigned | IA Internal-SC | [JIRA] (調適) [IABGVOC-1897] 功能块IN_OUT_PUT引脚状态无法展开监控 |
 | 572461 | step_control | Major | 400 | Review | HARVEY.XIE 謝孟軒 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1776] 程序区变量选中需要提示此变量的详细信息 |
 | 572460 | step_control | Major | 400 | Review & Approval | JASON.JY.LIN 林峻宇 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1770] 联合体/结构体没办法声明Array [*] OF A |
-| 572382 | step_control | Major | 400 | In Progress | MIAO.CHEN 陳炫妙 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1771] 結構體初始值設定後報錯: "String数据类型无法 |
+| 572382 | step_control | Major | 400 | In Progress | KF.LIU 劉桂輔 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1771] 結構體初始值設定後報錯: "String数据类型无法 |
 | 520738 | step_control | Major | 400 | Closed | KF.LIU 劉桂輔 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-961] POU中添加函数，函数引脚无赋值符，引脚无相关说明 |
 | 466614 | step_control | Major | 400 | In Progress | STEWARD.LU 呂名峰 | DGC-China | [JIRA] (程式編輯) [IABGVOC-2017] In the Ladder program unit |
 | 579098 | dgc_fae | Major | 240 | Closed | JOHNNY.MC.YEH 葉明勳 | IA Internal-SC | [JIRA] (調適) [IABGVOC-1999] 示波器监控无曲线，无值，属于已知问题 |
-| 579005 | dgc_fae | Major | 240 | Review | Unassigned | DGC-China | [JIRA] (程式編輯) [IABGVOC-1994] EXCEL导入MC_xxx FB的变量，但是在 LD |
 | 579002 | dgc_fae | Major | 240 | Review | Unassigned | DGC-China | [JIRA] (專案編譯) [IABGVOC-1993] 下载时还会重新编译一次(实体机、模拟器需要智能判断) |
 | 578892 | dgc_fae | Major | 240 | Review | HARVEY.XIE 謝孟軒 | DGC-China | [JIRA] (程式編輯) [IABGVOC-1964] 梯形图下Axis1的轴变量无法将其他类似位置等变量列 |
 | 578888 | dgc_fae | Critical | 240 | Review | Unassigned | DGC-China | [JIRA] (網路配置) [IABGVOC-1958] EtherCAT 插入設備時彈出例外視窗 |
@@ -395,8 +409,8 @@
 | 574370 | step_control | Major | 400 | Review | HARVEY.XIE 謝孟軒 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1830] ST Show Hint 希望能分段解析變數 |
 | 523235 | dgc_fae | Major | 400 | Review | HARVEY.XIE 謝孟軒 | DGC-China | [JIRA] (survey)(程式編輯) [IABGVOC-1954] ST Online模式下的監控行距調 |
 | 522465 | step_control | Blocker | 400 | Review | STEWARD.LU 呂名峰 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-976] 监控表中部分变量无法监控，无法修改变量值 |
-| 561761 | step_control | Major | 400 | In Progress | ORLANDO.LAN 藍順騰 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1487] 数组范围可以设定便属性为常量的变量ARRAY [0. |
 | 568982 | step_control | Major | 400 | Verification | ORLANDO.LAN 藍順騰 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1666] 支援不定长数组功能如ARRAY[*,*] OF 類型 |
+| 561761 | step_control | Major | 400 | Verification | ORLANDO.LAN 藍順騰 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1487] 数组范围可以设定便属性为常量的变量ARRAY [0. |
 | 581522 | dgc_fae | Major | 240 | Review | Unassigned | DGC-China | [JIRA] (手冊) [IABGVOC-2002] 軟體手冊內容、功能優化 |
 | 581078 | dgc_fae | Major | 240 | Review | LEANN.TING 丁寧 | IA Internal-SC | [JIRA] (輔助工具) [IABGVOC-2041] 万年历功能 |
 | 579939 | 手順 | Major | 240 | Review | STEWARD.LU 呂名峰 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-2037] ENUM 變數監控賦值功能優化 |
@@ -408,12 +422,13 @@
 | 579092 | dgc_fae | Major | 240 | Review | JACKY.TU 杜寧 | DGC-China | [JIRA] (運動控制) [IABGVOC-2005] 新增轴，不能直接输入中文，需要以字母为首 |
 | 579090 | step_control | Major | 240 | Review | HARVEY.XIE 謝孟軒 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1984] 枚舉類型的變數 Show Hint 能顯示出成員名稱 |
 | 579089 | dgc_fae | Major | 240 | Review | Unassigned | DGC-China | [JIRA] (程式編輯) [IABGVOC-2000] 離線模式下可展開陣列、結構體變數且得知位址資訊 |
+| 579005 | dgc_fae | Major | 240 | Review | Unassigned | DGC-China | [JIRA] (程式編輯) [IABGVOC-1994] MC 功能塊拖拉/新增時自動帶入已宣告變數 |
 | 578879 | dgc_fae | Major | 240 | Review | Unassigned | DGC-China | [JIRA] (專案管理) [IABGVOC-1961] 监控表不能放到屏幕下方，只能放在两侧，监控变量时不方 |
 | 575986 | step_control | Major | 240 | Review | MIAO.CHEN 陳炫妙 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1877] STRING 變量初始值設定頁面預設值需填上 '' |
 | 578951 | dgc_fae | Major | 240 | Closed | Unassigned | DGC-China | [JIRA] (專案管理) [IABGVOC-1963] 下载时没有进度条 |
 | 578948 | dgc_fae | Major | 240 | Closed | Unassigned | DGC-China | [JIRA] (程式編輯) [IABGVOC-1962] 程序页面中变量区域，变量不能展开看到内部参数 |
 | 511568 | step_control | Critical | 240 | Closed | KF.LIU 劉桂輔 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-834] 建立结构体时无法对变量进行初始化赋值 |
-| 572358 | step_control | Minor | 200 | Review & Approval | ORLANDO.LAN 藍順騰 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1767] 变量表信息展示不完全 |
+| 572358 | step_control | Minor | 200 | Closed | ORLANDO.LAN 藍順騰 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1767] 变量表信息展示不完全 |
 | 579894 | 手順 | Major | 160 | Review | ELVIS.CT.CHANG 張錦宗 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-2034] 梯形圖接點、輸出線圈右鍵選單內容優化 |
 | 579544 | step_control | Major | 160 | Review | ELVIS.CT.CHANG 張錦宗 | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-2025] LD 顯示的變量長度希望可自動調整 |
 | 564593 | step_control | Major | 160 | Review | Unassigned | IA Internal-SC | [JIRA] (程式編輯) [IABGVOC-1580] 用户权限设定 |
@@ -428,16 +443,16 @@
 
 | 項目 | 數值 |
 |------|------|
-| Issue CSV 載入筆數 | 269 |
-| Requirement CSV 載入筆數 | 165 |
+| Issue CSV 載入筆數 | 268 |
+| Requirement CSV 載入筆數 | 166 |
 | 基準日期（TODAY） | 2026-05-21 |
 | is_open 排除的 State | Closed, Review & Approval |
-| Issue State 分布 | Closed:221、Review:24、Review & Approval:9、In Progress:8、Verification:7 |
-| Req State 分布 | Review:78、Closed:70、Review & Approval:7、In Progress:5、Verification:5 |
+| Issue State 分布 | Closed:227、Review:23、In Progress:8、Verification:7、Review & Approval:3 |
+| Req State 分布 | Review:79、Closed:76、Verification:6、In Progress:4、Review & Approval:1 |
 | 日期解析失敗（Issue） | 0 |
 | 日期解析失敗（Req） | 0 |
 | FMEA 解析失敗（Issue） | 0 |
 | FMEA 解析失敗（Req） | 0 |
-| 開放 Issue 數（計算結果） | 39 |
-| 開放 Req 數（計算結果） | 88 |
+| 開放 Issue 數（計算結果） | 38 |
+| 開放 Req 數（計算結果） | 89 |
 | 開放數一致性自檢 | ✅ 通過 |
