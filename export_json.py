@@ -140,8 +140,8 @@ SA_CUTOFFS = [
 ]
 sa_issue_total, sa_req_total, sa_combined = [], [], []
 for cutoff in SA_CUTOFFS:
-    ni = sum(1 for r in issues if (d := parse_date(r.get('Creation Date',''))) and d <= cutoff)
-    nr = sum(1 for r in reqs   if (d := parse_date(r.get('Creation Date',''))) and d <= cutoff)
+    ni = sum(1 for r in issues for d in [parse_date(r.get('Creation Date',''))] if d and d <= cutoff)
+    nr = sum(1 for r in reqs   for d in [parse_date(r.get('Creation Date',''))] if d and d <= cutoff)
     sa_issue_total.append(ni)
     sa_req_total.append(nr)
     sa_combined.append(ni + nr)
