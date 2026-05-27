@@ -1,23 +1,38 @@
 {
   "_meta": {
-    "description": "IABGVOC 分析系統唯一定義來源。analyze_iabgvoc.py 啟動時讀取此檔；SKILL.md 中的參數說明均參照此檔。修改任何閾值或映射規則只需更新此檔，下次執行腳本自動生效。",
-    "schema_version": "1.0.0",
-    "last_updated": "2026-05-20"
+    "description": "IABGVOC 分析系統唯一定義來源。export_dashboard.py 啟動時讀取此檔。修改任何閾值或映射規則只需更新此檔，下次執行腳本自動生效。",
+    "schema_version": "1.2.0",
+    "last_updated": "2026-05-27"
+  },
+
+  "pages": [
+    {"role": "pm",    "label": "PM",    "region_filter": null},
+    {"role": "sc",    "label": "SC",    "region_filter": "IA Internal-SC"},
+    {"role": "dgc",   "label": "DGC",   "region_filter": "DGC-China"},
+    {"role": "imsbu", "label": "IMSBU", "region_filter": "IA Internal-IMSBU"},
+    {"role": "mok",   "label": "MOK",   "region_filter": "IA Internal-CoreTech"}
+  ],
+
+  "summary": {
+    "plan":     "（請填入）",
+    "progress": "（請填入）",
+    "problem":  "（請填入）"
+  },
+
+  "discussions": {
+    "decision":      "（請填入）",
+    "in_discussion": "（請填入）",
+    "conflict":      "（請填入）"
   },
 
   "closed_states": ["Closed", "Review & Approval"],
 
   "severity_order": ["Blocker", "Critical", "Major", "Minor"],
 
-  "special_tags": ["step_control", "手順", "dgc_fae"],
-
   "thresholds": {
-    "fmea_high": 500,
+    "fmea_high":      500,
     "fmea_mid_lower": 201,
-    "fmea_mid_upper": 499,
-    "backlog_days": 180,
-    "top_n": 20,
-    "summary_max_chars": 55
+    "fmea_mid_upper": 499
   },
 
   "version_mapping": {
@@ -47,27 +62,11 @@
     ]
   },
 
-  "labels": {
-    "open_definition": "開放定義",
-    "aging_definition": "老化定義"
-  },
-
   "version_schedule": {
     "DIADesigner 1.11.0": {"start_date": "2025-08-01", "release_date": "2025-10-31"},
     "DIADesigner 1.12.0": {"start_date": "2025-11-01", "release_date": "2026-01-31"},
     "DIADesigner 1.13.0": {"start_date": "2026-01-01", "release_date": "2026-03-31"},
     "DIADesigner 1.14.0": {"start_date": "2026-04-01", "release_date": "2026-06-30"},
     "DIADesigner 1.15.0": {"start_date": "2026-07-01", "release_date": "2026-09-30"}
-  },
-
-  "table_headers": {
-    "severity_dist":    "| 嚴重性 | 總數 | 開放數 | 開放率 |",
-    "item":             "| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | 摘要 |",
-    "item_with_region": "| ID | 嚴重性 | FMEA | State | Owner | 開放天數 | Region | 摘要 |",
-    "special_item":     "| ID | 類型 | 嚴重性 | FMEA | State | Owner | 摘要 |",
-    "special_appendix": "| ID | Tag | 嚴重性 | FMEA | State | Owner | Region | 摘要 |",
-    "tag_module":       "| 功能模組（Tag） | Issue 總數 | Issue 開放 | Req 總數 | Req 開放 | Critical/Blocker Opened |",
-    "region":           "| Region | Issue 總數 | Issue 開放 | Critical/Blocker Opened | Req 總數 | Req 開放 |",
-    "trend":            "| 年份 | Issue 新增 | Issue 關閉 | Issue 解決率 | Req 新增 | Req 關閉 | Req 解決率 |"
   }
 }
